@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	test: {
+		passWithNoTests: true,
 		coverage: {
 			reportsDirectory: './coverage-test',
 			provider: 'istanbul', // or 'v8'

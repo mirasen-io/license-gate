@@ -20,7 +20,7 @@ concurrency:
 jobs:
   detect-pr-source:
     # prevents this action from running on forks
-    if: github.repository == 'kt-npm-modules/npm-typescript-template'
+    if: github.repository == 'mirasen-io/license-gate'
     runs-on: ubuntu-latest
     outputs:
       skip: ${{ steps.decide.outputs.skip }}
@@ -58,7 +58,7 @@ jobs:
     needs: detect-pr-source
     # prevents this action from running on forks
     if: |
-      github.repository == 'kt-npm-modules/npm-typescript-template' &&
+      github.repository == 'mirasen-io/license-gate' &&
       needs.detect-pr-source.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:

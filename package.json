@@ -1,36 +1,24 @@
 {
-	"name": "@ktarmyshov/npm-typescript-template",
-	"description": "Template repository for npm packages written in TypeScript",
-	"version": "0.0.18",
+	"name": "@mirasen/license-gate",
+	"description": "License gate for npm packages.",
+	"version": "0.0.0",
 	"license": "MIT",
 	"author": {
-		"name": "Konstantin Tarmyshov",
-		"email": "k.tarmyshov@googlemail.com"
+		"name": "Mirasen"
 	},
 	"keywords": [
-		"node",
-		"javascript",
-		"typescript",
-		"nodejs",
-		"node_modules",
-		"npm",
-		"template",
-		"auto-update",
-		"auto-release",
-		"sonar",
-		"sonarcloud",
-		"codeql",
-		"eslint",
-		"prettier",
-		"changeset"
+		"mirasen",
+		"license",
+		"license-gate",
+		"typescript"
 	],
-	"homepage": "https://github.com/kt-npm-modules/npm-typescript-template#readme",
+	"homepage": "https://mirasen.io/license-gate",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/kt-npm-modules/npm-typescript-template.git"
+		"url": "git+https://github.com/mirasen-io/license-gate.git"
 	},
 	"bugs": {
-		"url": "https://github.com/kt-npm-modules/npm-typescript-template/issues"
+		"url": "https://github.com/mirasen-io/license-gate/issues"
 	},
 	"type": "module",
 	"types": "./dist/index.d.ts",
