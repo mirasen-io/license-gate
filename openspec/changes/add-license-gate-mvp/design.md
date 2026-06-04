@@ -51,8 +51,11 @@ and refuses anything else".
 
 **Non-Goals:**
 
-- Project-root walk-up autodiscovery. The project root is always `process.cwd()`.
-- `--cwd`, `--root`, `--project`, or any equivalent location flag.
+- Project-root walk-up autodiscovery. The project root is always the selected path —
+  `--cwd` if provided, otherwise `process.cwd()`.
+- `--root`, `--project`, or any other location-flag alias for the selected project root.
+- Treating `--cwd` as a search starting point. `--cwd` is an explicit project-root
+  selection; the tool never walks upward from it.
 - Clarification JSON, checksum-based evidence, `licenseStart`/`licenseEnd`.
 - License-text reading (`LICENSE`, `LICENCE`, `COPYING`, `README`).
 - License normalisation, `spdx-correct`, `spdx-satisfies`.
@@ -70,39 +73,45 @@ and refuses anything else".
 
 ## Decisions
 
-### D1. Project root is `process.cwd()` only — no walk-up
+### D1. Project root is the selected path — `--cwd` or `process.cwd()`, no walk-up
 
-**Choice:** The CLI treats `process.cwd()` as the project root. It requires
-`package.json` to exist directly in `process.cwd()`. If absent, exit code 2 with a clear
-message. If present and it declares `workspaces`, the project is a workspace project;
-otherwise it is a single-package project.
+**Choice:** The CLI treats the **selected project root** as the operating root. The
+selected root is `--cwd <path>` if supplied, otherwise `process.cwd()`. The CLI requires
+`package.json` to exist directly at the selected root. If absent, exit code 2 with a
+clear message. If present and it declares `workspaces`, the project is a workspace
+project; otherwise it is a single-package project. There is no walk-up, no
+`--root`/`--project` alias, no nearest-package-root discovery.
 
-**Why:** Walk-up autodiscovery rescues users from running from the wrong directory at the
-cost of CI ambiguity ("which root did the gate run against?"). For a strict gate, the
-right answer is to refuse rather than to guess. CI and humans alike must run from the
-intended npm project root.
+**Why:** Walk-up autodiscovery rescues users from running from the wrong directory at
+the cost of CI ambiguity ("which root did the gate run against?"). For a strict gate,
+the right answer is to refuse rather than to guess. `--cwd` is an explicit selection,
+not a search hint — it pins the project root for `npx` and programmatic flows where
+`cd` would be awkward (CI matrices, library consumers, monorepo orchestration), without
+ever inferring a parent.
 
 **Alternatives considered:**
 
 - Walk up to the nearest `package.json` with `workspaces`: rejected — hides the actual
   project root from the user, lets a CI step accidentally evaluate a parent project.
-- `--cwd <path>`: rejected for v1 — increases surface area without earning its weight when
-  callers can `cd` first.
+- `--root` / `--project` aliases: rejected — extra surface area for the same idea.
+- `--cwd` as a _search starting point_ (walk up from `--cwd`): rejected — same reason
+  as the walk-up case; the explicit selection is the whole point.
 
 ### D2. Graph discovery uses `@npmcli/arborist.loadActual()` + `tree.inventory`
 
-**Choice:** Always `new Arborist({ path: process.cwd() }); await arb.loadActual();` then
-iterate `tree.inventory.values()`. The Arborist `path` is always `process.cwd()` — never
-an ancestor (no walk-up rescue) and never the path of a `--workspace` selection. If
-`process.cwd()` happens to be a workspace subdirectory, that directory is treated as the
-project root and Arborist is invoked there; the fact that some other ancestor declares
-`workspaces` is irrelevant to v1.
+**Choice:** Always `new Arborist({ path: selectedProjectRoot }); await arb.loadActual();`
+then iterate `tree.inventory.values()`. The Arborist `path` is always the selected
+project root (`--cwd` or `process.cwd()`) — never an ancestor (no walk-up rescue) and
+never the path of a `--workspace` selection. If the selected project root happens to be
+a workspace subdirectory, that directory is treated as the project root and Arborist is
+invoked there; the fact that some other ancestor declares `workspaces` is irrelevant to
+v1.
 
 **Why:** Empirically verified that this single call captures non-hoisted workspace
 installs, nested transitive duplicates at distinct realpaths, and workspace-as-link
-nodes — every discovery edge case the v1 must handle. Pinning Arborist to
-`process.cwd()` keeps the project-root rule self-consistent: there is exactly one root,
-and the user picked it by `cd`.
+nodes — every discovery edge case the v1 must handle. Pinning Arborist to the selected
+project root keeps the project-root rule self-consistent: there is exactly one root,
+and the user picked it (via `cd` or `--cwd`).
 
 **Alternatives considered:**
 
@@ -116,29 +125,30 @@ and the user picked it by `cd`.
 **Trade-off:** Arborist 9 brings ~113 transitive packages. Acceptable for v1 and
 encapsulated behind `src/graph/load.ts` so the implementation is replaceable later.
 
-### D3. `--workspace` resolves and narrows in the cwd-rooted tree; never re-points Arborist
+### D3. `--workspace` resolves and narrows in the selected-root tree; never re-points Arborist
 
-**Choice:** When `--workspace <name|path>` is used from a workspace project root,
-Arborist still loads from `process.cwd()` per D2. The selected workspace is then resolved
-inside that already-loaded tree — by name via `tree.workspaces.get(name)`, or by path by
-resolving the user-provided path against `process.cwd()` and matching it to a workspace
+**Choice:** When `--workspace <name|path>` is used, Arborist still loads from the
+selected project root per D1/D2. The selected workspace is then resolved inside that
+already-loaded tree — by name via `tree.workspaces.get(name)`, or by path by resolving
+the user-provided path against the selected project root and matching it to a workspace
 node's `node.realpath`/`node.path`. Narrowing is performed by BFS over
 `node.edgesOut → edge.to` from the resolved workspace node; the evaluation set is
-`{wsNode} ∪ reachable`, deduplicated by `realpath`. The system never invokes Arborist with
-the selected workspace's path.
+`{wsNode} ∪ reachable`, deduplicated by `realpath`. The system never invokes Arborist
+with the selected workspace's path.
 
 **Why:** Empirical finding — invoking Arborist at a workspace subdirectory loses every
-hoisted dependency that the workspace transitively depends on. Realpath-prefix filtering
-also loses hoisted deps because they live under the project root, not under the workspace
-path. Loading once at `process.cwd()` and filtering by edge-reachability is the only
-approach that captures hoisted reachable deps for a single workspace.
+hoisted dependency that the workspace transitively depends on. Realpath-prefix
+filtering also loses hoisted deps because they live under the project root, not under
+the workspace path. Loading once at the selected project root and filtering by
+edge-reachability is the only approach that captures hoisted reachable deps for a
+single workspace.
 
 **Note on the no-walk-up rule:** D3 does not contradict D1/D2. The "Arborist is never
 invoked at a workspace subdirectory" rule applies specifically to `--workspace`
 narrowing — it forbids the implementation from re-pointing Arborist at the selected
-workspace. It does not say the tool refuses to run when `process.cwd()` is itself a
-workspace subdirectory; in that case `process.cwd()` is the project root by D1 and
-Arborist is invoked there by D2.
+workspace. It does not say the tool refuses to run when the selected project root is
+itself a workspace subdirectory; in that case the selected project root is the project
+root by D1 and Arborist is invoked there by D2.
 
 **Alternatives considered:**
 
@@ -298,7 +308,8 @@ distinction for engineers debugging a finding.
 
 **Choice:** `licenses/allowed-hard.txt` (required for `check`, never read by `collect`)
 and `licenses/allowed-packages.txt` (optional, read only by `check`), resolved relative to
-`process.cwd()`. No CLI flag, no `package.json` config, no env var.
+the **selected project root** (`--cwd` if provided, otherwise `process.cwd()`). No CLI
+flag for relocating these files, no `package.json` config, no env var.
 
 **Why:** A configurable hard gate is a relaxable hard gate. CI invocations should not be
 able to point at a permissive file.
@@ -416,42 +427,44 @@ There is no `repo-root.ts` module: `process.cwd()` is the project root.
 
 ```ts
 type InstalledPackageRecord = {
-  name: string;
-  version: string;
-  packageId: string;        // `${name}@${version}`
-  path: string;             // node.realpath
-  workspace: string | null; // closest workspace node's name, or null
-  license: string | "could not determine";
-  repository?: string;
-  publisher?: string;
-  email?: string;
+	name: string;
+	version: string;
+	packageId: string; // `${name}@${version}`
+	path: string; // node.realpath
+	workspace: string | null; // closest workspace node's name, or null
+	license: string | 'could not determine';
+	repository?: string;
+	publisher?: string;
+	email?: string;
 };
 
 type Decision =
-  | { record: InstalledPackageRecord; outcome: "allowed-by-license" }
-  | { record: InstalledPackageRecord; outcome: "allowed-by-scope-rule";
-      matchedPackageRule: string }
-  | { record: InstalledPackageRecord; outcome: "allowed-by-package-version-rule";
-      matchedPackageRule: string }
-  | { record: InstalledPackageRecord; outcome: "violation"; reason: ViolationReason };
+	| { record: InstalledPackageRecord; outcome: 'allowed-by-license' }
+	| { record: InstalledPackageRecord; outcome: 'allowed-by-scope-rule'; matchedPackageRule: string }
+	| {
+			record: InstalledPackageRecord;
+			outcome: 'allowed-by-package-version-rule';
+			matchedPackageRule: string;
+	  }
+	| { record: InstalledPackageRecord; outcome: 'violation'; reason: ViolationReason };
 
 type ViolationReason =
-  | { kind: "license-not-in-allowlist";
-      raw: string;
-      detailCode?: "literal-not-allowed-and-spdx-unparseable"
-                 | "spdx-expression-not-satisfied";
-      offendingLeaves?: string[]; // present when detailCode === "spdx-expression-not-satisfied"
-    }
-  | { kind: "package-not-in-allowlist" };
+	| {
+			kind: 'license-not-in-allowlist';
+			raw: string;
+			detailCode?: 'literal-not-allowed-and-spdx-unparseable' | 'spdx-expression-not-satisfied';
+			offendingLeaves?: string[]; // present when detailCode === "spdx-expression-not-satisfied"
+	  }
+	| { kind: 'package-not-in-allowlist' };
 
 type ConfigError =
-  | { kind: "missing-package-json"; cwd: string }
-  | { kind: "missing-node-modules"; cwd: string }
-  | { kind: "missing-allowed-hard-file"; path: string }
-  | { kind: "invalid-package-override-rule"; line: string; lineNumber: number; path: string }
-  | { kind: "invalid-workspace"; query: string }
-  | { kind: "output-path-unwritable"; path: string; cause: string }
-  | { kind: "invalid-usage"; message: string }; // e.g. `check --out`
+	| { kind: 'missing-package-json'; cwd: string }
+	| { kind: 'missing-node-modules'; cwd: string }
+	| { kind: 'missing-allowed-hard-file'; path: string }
+	| { kind: 'invalid-package-override-rule'; line: string; lineNumber: number; path: string }
+	| { kind: 'invalid-workspace'; query: string }
+	| { kind: 'output-path-unwritable'; path: string; cause: string }
+	| { kind: 'invalid-usage'; message: string }; // e.g. `check --out`
 ```
 
 `Decision` and `ViolationReason` are closed discriminated unions. Reporters must
@@ -480,10 +493,10 @@ exhaustively match.
 - **[Risk] `npm` version skew.** → Document: run `license-gate` after `npm ci` in the
   same environment that produces the shipped graph.
 - **[Risk] Optional dependencies that did not install on the host platform are
-  invisible.** → `loadActual()` reflects the *physically* installed graph, which is the
+  invisible.** → `loadActual()` reflects the _physically_ installed graph, which is the
   right surface for a gate. Document.
 - **[Risk] `WITH` exception expressions** (e.g. `GPL-2.0-only WITH
-  Classpath-exception-2.0`). Per D5a, a parsed WITH-exception leaf is reduced to one
+Classpath-exception-2.0`). Per D5a, a parsed WITH-exception leaf is reduced to one
   literal `"<id> WITH <exc>"` string and compared verbatim against `allowed-hard.txt`.
   If `spdx-expression-parse` cannot parse the input at all, the package fails with
   `license-not-in-allowlist` / `literal-not-allowed-and-spdx-unparseable`. Users who
@@ -515,8 +528,10 @@ Rollback strategy: revert the change. There are no consumers yet.
 
 (Resolved in this revision.)
 
-- Project root: `process.cwd()` only, no walk-up. Resolved.
-- `--cwd`: not in v1. Resolved.
+- Project root: selected path — `--cwd` if provided, otherwise `process.cwd()`; no
+  walk-up. Resolved.
+- `--cwd`: supported as an explicit project-root selection (not a search hint), for
+  both `check` and `collect`, on the CLI and in the programmatic API. Resolved.
 - `check --out`: not in v1. Resolved.
 - `collect` and `--workspace`: yes, supported. Resolved.
 - `collect` reading allowlist files: no — `collect` performs no policy I/O. Resolved.

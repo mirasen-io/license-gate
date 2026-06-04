@@ -15,7 +15,7 @@
   shape and **fails** on non-SPDX strings (`UNLICENSED`, `Apache 2.0`,
   `SEE LICENSE IN ...`). That failure is what lets us be non-inferential.
 - Real engines requirement is **Node `^20.17.0 || >=22.9.0`** for Arborist 9.
-  Our current `engines.node: ">=22"` is *too loose* — must tighten to
+  Our current `engines.node: ">=22"` is _too loose_ — must tighten to
   `>=22.9.0` (or accept Arborist 8 as an alternative).
 - The reference repo's clarifications/license-text-guessing/spdx-correct
   stack must be explicitly avoided. None of those primitives belong in our
@@ -62,29 +62,29 @@ What this means for design:
 
 ### What's worth knowing as reference
 
-| Reference detail | What we take from it |
-|---|---|
-| Uses `@npmcli/arborist` via `readInstalledPackagesWithArborist.js` | Confirms direction: Arborist is the right primary dep |
-| Pattern: `new Arborist({ path }); await arb.loadActual()` | Same call we want, but we'll consume `tree.inventory` instead of recursing `children` |
-| Node properties used: `node.path`, `node.realpath`, `node.package`, `node.target`, `node.isLink`, `node.children` | We add `node.isRoot`, `node.isWorkspace`, `node.location` — see §4 |
-| Aggregates errors into a flat object keyed by `name@version` | Same flat-record shape works for us, but with explicit decision/violation discriminator |
-| `process.exit(1)` after evaluation | Same model — but **after** full collection, not per-package |
-| `spdx-expression-parse` dependency | Same dep, used the same way (boolean shape only) |
+| Reference detail                                                                                                  | What we take from it                                                                    |
+| ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Uses `@npmcli/arborist` via `readInstalledPackagesWithArborist.js`                                                | Confirms direction: Arborist is the right primary dep                                   |
+| Pattern: `new Arborist({ path }); await arb.loadActual()`                                                         | Same call we want, but we'll consume `tree.inventory` instead of recursing `children`   |
+| Node properties used: `node.path`, `node.realpath`, `node.package`, `node.target`, `node.isLink`, `node.children` | We add `node.isRoot`, `node.isWorkspace`, `node.location` — see §4                      |
+| Aggregates errors into a flat object keyed by `name@version`                                                      | Same flat-record shape works for us, but with explicit decision/violation discriminator |
+| `process.exit(1)` after evaluation                                                                                | Same model — but **after** full collection, not per-package                             |
+| `spdx-expression-parse` dependency                                                                                | Same dep, used the same way (boolean shape only)                                        |
 
 ### What we explicitly avoid
 
-| Reference behaviour | Why we reject it |
-|---|---|
-| `clarifications` JSON with semver-range, checksum, `licenseStart/End` | Inference at config layer disguised as override. Our `allowed-packages.txt` is a literal pin; no semver, no checksum |
-| Reading `LICENSE`/`COPYING`/`README` text when metadata is empty | Pure license inference. Fails our policy by design |
-| `spdx-correct` to convert `Apache 2.0` → `Apache-2.0` | Normalisation is inference. Different strings stay different strings |
-| `spdx-satisfies` semantic compatibility | We only ask "is this leaf literally in the allowlist?" — no semantics |
-| `LICENSE_TITLE_UNKNOWN = "UNKNOWN"` as a soft sentinel | We use `"could not determine"` and treat it as a violation unless overridden |
-| `exitIfCheckHits` calling `process.exit(1)` mid-loop | Hides the rest of the violations. We collect-all-then-exit |
-| `--depth`, `--direct`, `--production`, `--development`, `--exclude`, `--includePackages`, `--customPath`, etc. | CLI surface bloat. We hold the line: `check`, `collect`, `--workspace`, `--json <path>`, `--out <path>` |
-| Node `>=24` and npm `>=11` | Unjustified for our scope. We aim Node `>=22.9.0` (Arborist 9 floor) |
-| `chalk`, `treeify`, `mkdirp`, `lodash.clonedeep`, `nopt` deps | We can do without all of these via `node:` builtins + `node:util.parseArgs` |
-| No explicit workspace handling in their code | A genuine gap we close on purpose |
+| Reference behaviour                                                                                            | Why we reject it                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `clarifications` JSON with semver-range, checksum, `licenseStart/End`                                          | Inference at config layer disguised as override. Our `allowed-packages.txt` is a literal pin; no semver, no checksum |
+| Reading `LICENSE`/`COPYING`/`README` text when metadata is empty                                               | Pure license inference. Fails our policy by design                                                                   |
+| `spdx-correct` to convert `Apache 2.0` → `Apache-2.0`                                                          | Normalisation is inference. Different strings stay different strings                                                 |
+| `spdx-satisfies` semantic compatibility                                                                        | We only ask "is this leaf literally in the allowlist?" — no semantics                                                |
+| `LICENSE_TITLE_UNKNOWN = "UNKNOWN"` as a soft sentinel                                                         | We use `"could not determine"` and treat it as a violation unless overridden                                         |
+| `exitIfCheckHits` calling `process.exit(1)` mid-loop                                                           | Hides the rest of the violations. We collect-all-then-exit                                                           |
+| `--depth`, `--direct`, `--production`, `--development`, `--exclude`, `--includePackages`, `--customPath`, etc. | CLI surface bloat. We hold the line: `check`, `collect`, `--workspace`, `--json <path>`, `--out <path>`              |
+| Node `>=24` and npm `>=11`                                                                                     | Unjustified for our scope. We aim Node `>=22.9.0` (Arborist 9 floor)                                                 |
+| `chalk`, `treeify`, `mkdirp`, `lodash.clonedeep`, `nopt` deps                                                  | We can do without all of these via `node:` builtins + `node:util.parseArgs`                                          |
+| No explicit workspace handling in their code                                                                   | A genuine gap we close on purpose                                                                                    |
 
 ---
 
@@ -194,19 +194,19 @@ Notes:
 
 Verified live:
 
-| Input | Outcome |
-|---|---|
-| `"MIT"` | OK → `{license:"MIT"}` |
-| `"Apache-2.0"` | OK → `{license:"Apache-2.0"}` |
-| `"Apache 2.0"` | **FAIL** (`Unexpected 'A' at offset 0`) |
-| `"(MIT OR Apache-2.0)"` | OK → `{left:{license:"MIT"},conjunction:"or",right:{license:"Apache-2.0"}}` |
-| `"MIT OR GPL-3.0"` | OK |
-| `"MIT AND CC-BY-4.0"` | OK |
-| `"(MIT OR (GPL-2.0 AND classpath-exception-2.0))"` | **FAIL** (parser doesn't accept inline exception form) |
-| `"MIT OR"` | **FAIL** (malformed) |
-| `"SEE LICENSE IN LICENSE.md"` | **FAIL** |
-| `"UNLICENSED"` | **FAIL** |
-| `""` | **FAIL** (null deref) |
+| Input                                              | Outcome                                                                     |
+| -------------------------------------------------- | --------------------------------------------------------------------------- |
+| `"MIT"`                                            | OK → `{license:"MIT"}`                                                      |
+| `"Apache-2.0"`                                     | OK → `{license:"Apache-2.0"}`                                               |
+| `"Apache 2.0"`                                     | **FAIL** (`Unexpected 'A' at offset 0`)                                     |
+| `"(MIT OR Apache-2.0)"`                            | OK → `{left:{license:"MIT"},conjunction:"or",right:{license:"Apache-2.0"}}` |
+| `"MIT OR GPL-3.0"`                                 | OK                                                                          |
+| `"MIT AND CC-BY-4.0"`                              | OK                                                                          |
+| `"(MIT OR (GPL-2.0 AND classpath-exception-2.0))"` | **FAIL** (parser doesn't accept inline exception form)                      |
+| `"MIT OR"`                                         | **FAIL** (malformed)                                                        |
+| `"SEE LICENSE IN LICENSE.md"`                      | **FAIL**                                                                    |
+| `"UNLICENSED"`                                     | **FAIL**                                                                    |
+| `""`                                               | **FAIL** (null deref)                                                       |
 
 This is excellent for us — the parser is non-correcting. But it has two
 implications we must build around:
@@ -345,33 +345,34 @@ Boundaries (enforced by import direction):
 
 ```ts
 type InstalledPackageRecord = {
-  name: string;
-  version: string;
-  packageId: string;        // `${name}@${version}`
-  path: string;             // node.realpath
-  workspace: string | null; // closest workspace node's name, or null
-  license: string | "could not determine";
-  // licenseFile only when package.json explicitly references one — never inferred
-  licenseFile?: string;
-  repository?: string;
-  publisher?: string;
-  email?: string;
+	name: string;
+	version: string;
+	packageId: string; // `${name}@${version}`
+	path: string; // node.realpath
+	workspace: string | null; // closest workspace node's name, or null
+	license: string | 'could not determine';
+	// licenseFile only when package.json explicitly references one — never inferred
+	licenseFile?: string;
+	repository?: string;
+	publisher?: string;
+	email?: string;
 };
 
 type Decision =
-  | { record: InstalledPackageRecord; outcome: "allowed-by-license" }
-  | { record: InstalledPackageRecord; outcome: "allowed-by-scope-rule";
-      matchedPackageRule: string }
-  | { record: InstalledPackageRecord; outcome: "allowed-by-package-version-rule";
-      matchedPackageRule: string }
-  | { record: InstalledPackageRecord; outcome: "violation"; reason: ViolationReason };
+	| { record: InstalledPackageRecord; outcome: 'allowed-by-license' }
+	| { record: InstalledPackageRecord; outcome: 'allowed-by-scope-rule'; matchedPackageRule: string }
+	| {
+			record: InstalledPackageRecord;
+			outcome: 'allowed-by-package-version-rule';
+			matchedPackageRule: string;
+	  }
+	| { record: InstalledPackageRecord; outcome: 'violation'; reason: ViolationReason };
 
 type ViolationReason =
-  | { kind: "license-could-not-determine" }
-  | { kind: "license-not-in-allowlist"; literal: string }
-  | { kind: "license-expression-unparseable"; raw: string }
-  | { kind: "license-expression-leaf-not-allowed"; raw: string;
-      offendingLeaves: string[] };
+	| { kind: 'license-could-not-determine' }
+	| { kind: 'license-not-in-allowlist'; literal: string }
+	| { kind: 'license-expression-unparseable'; raw: string }
+	| { kind: 'license-expression-leaf-not-allowed'; raw: string; offendingLeaves: string[] };
 ```
 
 Closed discriminated union forces the reporter to handle every outcome.
@@ -439,9 +440,9 @@ Hard rules:
 
 - `"MIT"` (string) → literal `MIT`
 - `{ type: "MIT", url: "..." }` (deprecated object form) → **`could not
-  determine`** (Q2 strict — see open questions)
+determine`** (Q2 strict — see open questions)
 - `licenses: [{ type: "MIT" }]` (deprecated array form) → **`could not
-  determine`** (Q2 strict)
+determine`** (Q2 strict)
 - `"SEE LICENSE IN LICENSE.md"` → literal string; passes only if literally
   allowed; we never read the file
 - `"UNLICENSED"` → literal string
@@ -509,8 +510,8 @@ combination.
 - `license: { type: "MIT", url: "..." }`
 - `licenses: [{ type: "MIT" }, { type: "Apache-2.0" }]`
 
-Reading `.type` is not "license-text inference" but it is *schema
-inference* across deprecated forms. Two stances:
+Reading `.type` is not "license-text inference" but it is _schema
+inference_ across deprecated forms. Two stances:
 
 - **Strict (recommended for v1):** only `license: "<string>"` is read.
   Anything else → `could not determine`. Pure, explicit, no hidden mapping.

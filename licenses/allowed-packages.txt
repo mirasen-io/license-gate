@@ -1,0 +1,19 @@
+# licenses/allowed-packages.txt — package-level overrides for @mirasen/license-gate
+#
+# Optional. When present, this file allows a small, audit-visible set of
+# package overrides for cases where the license string in package.json is
+# missing, non-SPDX, or otherwise blocked by allowed-hard.txt but the package
+# is known and trusted.
+#
+# Accepted rule forms (and ONLY these):
+#   @scope/*                  trusted internal namespace
+#   package-name@version      exact installed unscoped package version
+#   @scope/package@version    exact installed scoped package version
+#
+# Anything else (bare name, semver range, wildcard version, regex, glob,
+# `*`, etc.) is rejected at parse time with exit code 2.
+#
+# Examples:
+#   @mirasen/*
+#   internal-tool@1.2.3
+#   @types/node@22.0.0

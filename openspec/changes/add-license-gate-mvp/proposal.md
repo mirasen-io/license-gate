@@ -20,9 +20,12 @@ treating each leaf as a literal allowlist lookup.
   - `license-gate check` — evaluate the installed graph against policy and exit 0/1/2.
   - `license-gate collect` — enumerate installed package/license metadata as a flat report
     (no policy I/O).
-- **Project root rule:** the project root is always `process.cwd()`. The CLI requires
-  `package.json` to exist directly in `process.cwd()` and never walks upward. There is no
-  `--cwd`, `--root`, or `--project` flag in v1.
+- **Project root rule:** the project root is `--cwd <path>` if supplied, otherwise
+  `process.cwd()`. The CLI requires `package.json` to exist directly at the selected
+  project root and never walks upward. There is no `--root` or `--project` alias and
+  no walk-up rescue. All project-relative paths (`licenses/allowed-hard.txt`,
+  `licenses/allowed-packages.txt`, `--workspace` relative paths, `--out`, `--json`)
+  resolve against the selected project root.
 - Adopt `@npmcli/arborist` (`loadActual()` + `tree.inventory`) as the sole graph-discovery
   primitive. No hand-rolled `node_modules` walker in v1.
 - Adopt `spdx-expression-parse` strictly for SPDX boolean expression shape (OR / AND /
@@ -31,9 +34,12 @@ treating each leaf as a literal allowlist lookup.
 - Define fixed allowlist files at the project root: `licenses/allowed-hard.txt` (required
   for `check`, not read by `collect`) and `licenses/allowed-packages.txt` (optional, read
   only for `check`). Paths are not configurable.
-- Define `--workspace <name|path>` narrowing that always loads Arborist from
-  `process.cwd()` and filters by reachability from the workspace node via
-  `node.edgesOut → edge.to` (never by realpath prefix).
+- Define `--workspace <name|path>` narrowing that always loads Arborist from the
+  selected project root and filters by reachability from the workspace node via
+  `node.edgesOut → edge.to` (never by realpath prefix, never by re-pointing Arborist at
+  the workspace path).
+- Define `--cwd <path>` (both commands) as explicit project-root selection — not a
+  search starting point. When omitted, the project root defaults to `process.cwd()`.
 - Define `--json <path>` (both commands) and `--out <path>` (`collect` only) as explicit
   path outputs. `--json` is never a stdout-format toggle. `check --out <path>` is rejected
   as invalid usage with exit 2.
@@ -47,10 +53,11 @@ treating each leaf as a literal allowlist lookup.
   `node:util.parseArgs`).
 - Add `bin: { "license-gate": "./dist/cli.js" }` and runtime `dependencies`
   `@npmcli/arborist`, `spdx-expression-parse` to `package.json`.
-- Define explicit non-goals locking out walk-up autodiscovery, `--cwd`, clarifications,
-  license-text reading, normalisation, semantic SPDX matching, denylists, configurable
-  allowlist paths, deprecated `license`/`licenses[]` shape unwrapping, pnpm/yarn,
-  Gradle/Maven, bundle analysers, markdown/tree visualisers, SaaS/enterprise modes.
+- Define explicit non-goals locking out walk-up autodiscovery, `--root`/`--project`
+  aliases, clarifications, license-text reading, normalisation, semantic SPDX matching,
+  denylists, configurable allowlist paths, deprecated `license`/`licenses[]` shape
+  unwrapping, pnpm/yarn, Gradle/Maven, bundle analysers, markdown/tree visualisers,
+  SaaS/enterprise modes.
 
 ## Capabilities
 
