@@ -1,5 +1,5 @@
 ---
-'@mirasen/license-gate': minor
+'@mirasen/license-gate': major
 ---
 
 Initial implementation of `@mirasen/license-gate` — a strict, local, default-deny license
