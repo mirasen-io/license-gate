@@ -61,6 +61,7 @@
 		"@eslint/compat": "^2.0.0",
 		"@eslint/js": "^10.0.1",
 		"@types/node": "^25.0.2",
+		"@types/npmcli__arborist": "^6.3.3",
 		"@vitest/coverage-istanbul": "^4.0.3",
 		"eslint": "^10.0.2",
 		"eslint-config-prettier": "^10.1.2",

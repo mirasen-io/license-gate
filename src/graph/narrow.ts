@@ -16,16 +16,23 @@
 
 import { existsSync, realpathSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
+import type Arborist from '@npmcli/arborist';
 
 import { LicenseGateConfigError } from '../types.js';
-import type { ArboristNode } from './load.js';
 
 /** Result of resolving a workspace within the loaded tree, plus the narrowed
  *  evaluation set (workspace node + reachable deps, deduplicated by realpath). */
 export type NarrowedTree = {
-	workspaceNode: ArboristNode;
-	evaluationSet: ArboristNode[];
+	workspaceNode: Arborist.Node;
+	evaluationSet: Arborist.Node[];
 };
+
+/** Walk through a Link to its target Node; non-link nodes pass through.
+ *  Narrowing gap: DefinitelyTyped types `target` on the base `Node` class as
+ *  required, but it is only meaningful when `isLink === true`. */
+function followLink(node: Arborist.Node | Arborist.Link): Arborist.Node {
+	return node.isLink && node.target ? node.target : node;
+}
 
 function canonical(p: string): string {
 	try {
@@ -39,7 +46,7 @@ function canonical(p: string): string {
  *  Authoritative source: `tree.workspaces` Map<name, absolutePath>. We then
  *  match the chosen path back to a Node either via inventory realpath or by
  *  walking children. */
-function resolveWorkspaceNode(tree: ArboristNode, query: string, cwd: string): ArboristNode {
+function resolveWorkspaceNode(tree: Arborist.Node, query: string, cwd: string): Arborist.Node {
 	const workspacesMap = tree.workspaces;
 	if (!workspacesMap || workspacesMap.size === 0) {
 		throw new LicenseGateConfigError(
@@ -89,7 +96,7 @@ function resolveWorkspaceNode(tree: ArboristNode, query: string, cwd: string): A
 		if (node.realpath === targetPath) return node;
 	}
 	for (const child of tree.children.values()) {
-		const target = child.isLink && child.target ? child.target : child;
+		const target = followLink(child);
 		if (target.realpath === targetPath) return target;
 	}
 
@@ -105,12 +112,12 @@ function resolveWorkspaceNode(tree: ArboristNode, query: string, cwd: string): A
 
 /** BFS from a workspace node along edgesOut, collecting reachable nodes
  *  (deduplicated by realpath). */
-function reachableFrom(start: ArboristNode): ArboristNode[] {
-	const seen = new Map<string, ArboristNode>();
-	const queue: ArboristNode[] = [start];
+function reachableFrom(start: Arborist.Node): Arborist.Node[] {
+	const seen = new Map<string, Arborist.Node>();
+	const queue: Arborist.Node[] = [start];
 	while (queue.length > 0) {
 		const node = queue.shift()!;
-		const target = node.isLink && node.target ? node.target : node;
+		const target = followLink(node);
 		if (seen.has(target.realpath)) continue;
 		seen.set(target.realpath, target);
 		if (target.edgesOut) {
@@ -123,7 +130,7 @@ function reachableFrom(start: ArboristNode): ArboristNode[] {
 }
 
 /** Narrow the loaded tree to one workspace + its reachable graph. */
-export function narrowToWorkspace(tree: ArboristNode, query: string, cwd: string): NarrowedTree {
+export function narrowToWorkspace(tree: Arborist.Node, query: string, cwd: string): NarrowedTree {
 	const workspaceNode = resolveWorkspaceNode(tree, query, cwd);
 	const evaluationSet = reachableFrom(workspaceNode);
 	return { workspaceNode, evaluationSet };

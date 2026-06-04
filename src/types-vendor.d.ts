@@ -1,17 +1,10 @@
 /**
  * Minimal type declarations for runtime dependencies that ship without their
  * own .d.ts files. We type only the surface we actually use.
+ *
+ * `@npmcli/arborist` is no longer declared here — types come from the
+ * `@types/npmcli__arborist` devDependency.
  */
-
-declare module '@npmcli/arborist' {
-	export interface ArboristOptions {
-		path: string;
-	}
-	export default class Arborist {
-		constructor(opts: ArboristOptions);
-		loadActual(): Promise<unknown>;
-	}
-}
 
 declare module 'spdx-expression-parse' {
 	type Leaf = { license: string; exception?: string };

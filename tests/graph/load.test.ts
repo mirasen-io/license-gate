@@ -45,18 +45,14 @@ describe('graph/load — Arborist invocation rules', () => {
 		// that license-gate does NOT walk up to the workspace root.
 		const { mkdir } = await import('node:fs/promises');
 		await mkdir(`${wsRoot}/apps/web/node_modules`, { recursive: true });
-		const subTree = (await loadInstalledGraph(`${wsRoot}/apps/web`)) as {
-			realpath: string;
-		};
+		const subTree = await loadInstalledGraph(`${wsRoot}/apps/web`);
 		// The Arborist root should be the subdir, not the workspace root.
 		expect(subTree.realpath.endsWith('/apps/web')).toBe(true);
 	});
 
 	it('inventory captures non-hoisted version conflicts', async () => {
 		const root = await buildNonHoistedConflictFixture();
-		const tree = (await loadInstalledGraph(root)) as {
-			inventory: Map<string, { name: string; version?: string; realpath: string }>;
-		};
+		const tree = await loadInstalledGraph(root);
 		const sharedCopies = Array.from(tree.inventory.values()).filter(
 			(n) => n.name === 'fake-shared'
 		);
@@ -69,18 +65,14 @@ describe('graph/load — Arborist invocation rules', () => {
 
 	it('workspace declarations are visible via tree.workspaces', async () => {
 		const root = await buildHoistedWorkspaceFixture();
-		const tree = (await loadInstalledGraph(root)) as {
-			workspaces?: Map<string, string>;
-		};
+		const tree = await loadInstalledGraph(root);
 		expect(tree.workspaces?.size).toBeGreaterThanOrEqual(1);
 		expect(Array.from(tree.workspaces?.keys() ?? [])).toContain('@probe/web');
 	});
 
 	it('workspace-deps-workspace fixture exposes both workspaces in tree.workspaces', async () => {
 		const root = await buildWorkspaceDepsWorkspaceFixture();
-		const tree = (await loadInstalledGraph(root)) as {
-			workspaces?: Map<string, string>;
-		};
+		const tree = await loadInstalledGraph(root);
 		const wsNames = Array.from(tree.workspaces?.keys() ?? []).sort();
 		expect(wsNames).toEqual(['@probe/api', '@probe/utils']);
 	});

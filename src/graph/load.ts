@@ -20,7 +20,7 @@ import { LicenseGateConfigError } from '../types.js';
  * Returns the Arborist `tree` (the root Node). Iterate `tree.inventory.values()`
  * for the flat list of unique installed copies.
  */
-export async function loadInstalledGraph(cwd: string = process.cwd()): Promise<ArboristNode> {
+export async function loadInstalledGraph(cwd: string = process.cwd()): Promise<Arborist.Node> {
 	const pkgJsonPath = resolve(cwd, 'package.json');
 	if (!existsSync(pkgJsonPath)) {
 		throw new LicenseGateConfigError(
@@ -43,44 +43,5 @@ export async function loadInstalledGraph(cwd: string = process.cwd()): Promise<A
 	const canonical = realpathSync(cwd);
 
 	const arb = new Arborist({ path: canonical });
-	const tree = (await arb.loadActual()) as ArboristNode;
-	return tree;
+	return arb.loadActual();
 }
-
-/**
- * A loose structural type covering the parts of an Arborist Node we read.
- * Arborist exposes `Node` and `Link` classes with many runtime fields; the
- * shape below is enough for our needs and lets us avoid pulling Arborist's
- * internal types into the public API surface.
- */
-export type ArboristNode = {
-	name: string;
-	version?: string;
-	location: string;
-	path: string;
-	realpath: string;
-	isRoot: boolean;
-	isWorkspace: boolean;
-	isLink: boolean;
-	package: ArboristPackageJson;
-	children: Map<string, ArboristNode>;
-	edgesOut: Map<string, ArboristEdge>;
-	target?: ArboristNode;
-	inventory: Map<string, ArboristNode> & { values(): IterableIterator<ArboristNode> };
-	workspaces?: Map<string, string>;
-};
-
-export type ArboristPackageJson = {
-	name?: string;
-	version?: string;
-	license?: unknown;
-	licenses?: unknown;
-	repository?: unknown;
-	author?: unknown;
-};
-
-export type ArboristEdge = {
-	name: string;
-	type: string;
-	to?: ArboristNode | null;
-};
