@@ -57,6 +57,27 @@ describe('parseAllowedPackages — accepted forms', () => {
 		});
 	});
 
+	it('accepts package-name wildcard rule (unscoped)', () => {
+		const rules = parse('lodash@*\n');
+		expect(rules).toHaveLength(1);
+		expect(rules[0]).toMatchObject({
+			kind: 'package-name',
+			name: 'lodash',
+			ruleText: 'lodash@*'
+		});
+	});
+
+	it('accepts package-name wildcard rule (scoped)', () => {
+		const rules = parse('@scope/weird-package@*\n');
+		expect(rules).toHaveLength(1);
+		expect(rules[0]).toMatchObject({
+			kind: 'scoped-package-name',
+			scope: '@scope',
+			name: '@scope/weird-package',
+			ruleText: '@scope/weird-package@*'
+		});
+	});
+
 	it('accepts SemVer pre-release in version', () => {
 		const rules = parse('pkg@1.2.3-rc.1\n');
 		expect(rules).toHaveLength(1);
@@ -95,8 +116,10 @@ describe('parseAllowedPackages — accepted forms', () => {
 
 lodash@4.17.21
 @types/node@22.0.0
+spawndamnit@*
+@scope/weird-package@*
 `);
-		expect(rules).toHaveLength(3);
+		expect(rules).toHaveLength(5);
 	});
 });
 
@@ -106,22 +129,33 @@ describe('parseAllowedPackages — rejected forms', () => {
 	});
 	it('rejects scoped package without version', () => {
 		expectInvalid('@types/node\n');
-	});
-	it('rejects wildcard version', () => {
-		expectInvalid('lodash@*\n');
-		expectInvalid('@types/node@*\n');
+		expectInvalid('@scope/weird-package\n');
 	});
 	it('rejects semver ranges', () => {
 		expectInvalid('lodash@^4.17.0\n');
 		expectInvalid('lodash@~4.17.0\n');
 		expectInvalid('lodash@>=4\n');
 		expectInvalid('lodash@4.x\n');
+		expectInvalid('lodash@1.x\n');
 	});
 	it('rejects glob and regex and bare star', () => {
 		expectInvalid('lodash*\n');
 		expectInvalid('*\n');
 		expectInvalid('/lodash.*/\n');
 		expectInvalid('lodash{a,b}\n');
+		expectInvalid('@scope/weird-*\n');
+	});
+	it('rejects wildcard scope plus wildcard version', () => {
+		expectInvalid('@scope/*@*\n');
+	});
+	it('rejects wildcard everything', () => {
+		expectInvalid('*@*\n');
+	});
+	it('rejects prefix wildcard on package name combined with @*', () => {
+		expectInvalid('lodash*@*\n');
+	});
+	it('rejects empty head before @*', () => {
+		expectInvalid('@*\n');
 	});
 	it('reports file path and line number', () => {
 		try {

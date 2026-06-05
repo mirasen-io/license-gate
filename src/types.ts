@@ -48,7 +48,14 @@ export type AllowedPackagesRule =
 			name: string; // full `@scope/name`
 			version: string;
 			ruleText: string;
-	  };
+	  }
+	| { kind: 'package-name'; name: string; ruleText: string } // `pkg@*`
+	| {
+			kind: 'scoped-package-name';
+			scope: string;
+			name: string; // full `@scope/name`
+			ruleText: string;
+	  }; // `@scope/pkg@*`
 
 /** Parsed allowlists used by the policy evaluator. */
 export type AllowedPackages = ReadonlyArray<AllowedPackagesRule>;
@@ -64,6 +71,11 @@ export type Decision =
 	| {
 			record: InstalledPackageRecord;
 			outcome: 'allowed-by-package-version-rule';
+			matchedPackageRule: string;
+	  }
+	| {
+			record: InstalledPackageRecord;
+			outcome: 'allowed-by-package-name-rule';
 			matchedPackageRule: string;
 	  }
 	| { record: InstalledPackageRecord; outcome: 'violation'; reason: ViolationReason };

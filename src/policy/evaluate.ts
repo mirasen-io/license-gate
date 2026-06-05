@@ -1,21 +1,28 @@
 /**
  * Policy evaluator — pure: maps records + allowlists → decisions.
  *
- * Per design D5/D5a:
+ * Per design D5/D5a + add-package-wildcard-overrides:
  *   1. license == "could not determine":
- *        override matches  → allowed-by-{scope|package-version}-rule
+ *        override matches  → allowed-by-{scope|package-version|package-name}-rule
  *        else              → violation { reason: "package-not-in-allowlist" }
  *   2. literal license string in allowed-hard.txt:
  *        → allowed-by-license   (override is ignored: license-allow wins)
  *   3. otherwise SPDX evaluation (with WITH-exception leaves reduced to
  *      "<id> WITH <exc>" composite literals):
  *        satisfied                  → allowed-by-license
- *        unsatisfied + override     → allowed-by-{scope|package-version}-rule
+ *        unsatisfied + override     → allowed-by-{scope|package-version|package-name}-rule
  *        unsatisfied + no override  → license-not-in-allowlist
  *                                      / spdx-expression-not-satisfied
- *        unparseable + override     → allowed-by-{scope|package-version}-rule
+ *        unparseable + override     → allowed-by-{scope|package-version|package-name}-rule
  *        unparseable + no override  → license-not-in-allowlist
  *                                      / literal-not-allowed-and-spdx-unparseable
+ *
+ * Override precedence when multiple `allowed-packages.txt` rules match the
+ * same installed package (most-specific wins, license-allow already short-
+ * circuits earlier):
+ *   (a) exact `package@version` / `@scope/package@version`
+ *   (b) `package@*` / `@scope/package@*`
+ *   (c) `@scope/*`
  */
 
 import {
@@ -29,44 +36,78 @@ import {
 import { evaluateSpdx } from './spdx-shape.js';
 
 /** Find the override rule that matches a record. When several match (e.g.
- *  both `@scope/*` and `@scope/foo@1.2.3`), the more specific rule wins. */
+ *  both `@scope/*`, `@scope/foo@*`, and `@scope/foo@1.2.3`), apply the
+ *  precedence: exact version > package-name wildcard > scope wildcard. */
 function findMatchingOverride(
 	record: InstalledPackageRecord,
 	rules: AllowedPackages
 ): AllowedPackagesRule | null {
 	let scopeMatch: AllowedPackagesRule | null = null;
+	let nameMatch: AllowedPackagesRule | null = null;
 	let exactMatch: AllowedPackagesRule | null = null;
 	for (const rule of rules) {
-		if (rule.kind === 'package-version') {
-			if (rule.name === record.name && rule.version === record.version) {
-				exactMatch = rule;
-			}
-		} else if (rule.kind === 'scoped-package-version') {
-			if (rule.name === record.name && rule.version === record.version) {
-				exactMatch = rule;
-			}
-		} else if (rule.kind === 'scope') {
-			if (record.name.startsWith(`${rule.scope}/`)) {
-				scopeMatch = rule;
+		switch (rule.kind) {
+			case 'package-version':
+				if (rule.name === record.name && rule.version === record.version) {
+					exactMatch = rule;
+				}
+				break;
+			case 'scoped-package-version':
+				if (rule.name === record.name && rule.version === record.version) {
+					exactMatch = rule;
+				}
+				break;
+			case 'package-name':
+				if (rule.name === record.name) {
+					nameMatch = rule;
+				}
+				break;
+			case 'scoped-package-name':
+				if (rule.name === record.name) {
+					nameMatch = rule;
+				}
+				break;
+			case 'scope':
+				if (record.name.startsWith(`${rule.scope}/`)) {
+					scopeMatch = rule;
+				}
+				break;
+			default: {
+				const _never: never = rule;
+				throw new Error(`unreachable rule: ${JSON.stringify(_never)}`);
 			}
 		}
 	}
-	return exactMatch ?? scopeMatch;
+	return exactMatch ?? nameMatch ?? scopeMatch;
 }
 
 function overrideToDecision(record: InstalledPackageRecord, rule: AllowedPackagesRule): Decision {
-	if (rule.kind === 'scope') {
-		return {
-			record,
-			outcome: 'allowed-by-scope-rule',
-			matchedPackageRule: rule.ruleText
-		};
+	switch (rule.kind) {
+		case 'scope':
+			return {
+				record,
+				outcome: 'allowed-by-scope-rule',
+				matchedPackageRule: rule.ruleText
+			};
+		case 'package-version':
+		case 'scoped-package-version':
+			return {
+				record,
+				outcome: 'allowed-by-package-version-rule',
+				matchedPackageRule: rule.ruleText
+			};
+		case 'package-name':
+		case 'scoped-package-name':
+			return {
+				record,
+				outcome: 'allowed-by-package-name-rule',
+				matchedPackageRule: rule.ruleText
+			};
+		default: {
+			const _never: never = rule;
+			throw new Error(`unreachable rule: ${JSON.stringify(_never)}`);
+		}
 	}
-	return {
-		record,
-		outcome: 'allowed-by-package-version-rule',
-		matchedPackageRule: rule.ruleText
-	};
 }
 
 export function evaluateRecord(

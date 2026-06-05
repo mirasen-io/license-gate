@@ -50,6 +50,7 @@ export function renderCheckHuman(input: {
 	const allowedByLicense: Decision[] = [];
 	const allowedByScope: Decision[] = [];
 	const allowedByPackageVersion: Decision[] = [];
+	const allowedByPackageName: Decision[] = [];
 	const violations: Extract<Decision, { outcome: 'violation' }>[] = [];
 
 	for (const d of decisions) {
@@ -62,6 +63,9 @@ export function renderCheckHuman(input: {
 				break;
 			case 'allowed-by-package-version-rule':
 				allowedByPackageVersion.push(d);
+				break;
+			case 'allowed-by-package-name-rule':
+				allowedByPackageName.push(d);
 				break;
 			case 'violation':
 				violations.push(d);
@@ -83,13 +87,22 @@ export function renderCheckHuman(input: {
 	lines.push(`  allowed by license:         ${allowedByLicense.length}`);
 	lines.push(`  allowed by scope rule:      ${allowedByScope.length}`);
 	lines.push(`  allowed by package@version: ${allowedByPackageVersion.length}`);
+	lines.push(`  allowed by package@*:       ${allowedByPackageName.length}`);
 	lines.push(`  violations:                 ${violations.length}`);
 	lines.push('');
 
-	if (allowedByScope.length > 0 || allowedByPackageVersion.length > 0) {
+	if (
+		allowedByScope.length > 0 ||
+		allowedByPackageVersion.length > 0 ||
+		allowedByPackageName.length > 0
+	) {
 		lines.push('Package overrides applied:');
-		for (const d of [...allowedByScope, ...allowedByPackageVersion]) {
-			if (d.outcome !== 'allowed-by-scope-rule' && d.outcome !== 'allowed-by-package-version-rule')
+		for (const d of [...allowedByPackageVersion, ...allowedByPackageName, ...allowedByScope]) {
+			if (
+				d.outcome !== 'allowed-by-scope-rule' &&
+				d.outcome !== 'allowed-by-package-version-rule' &&
+				d.outcome !== 'allowed-by-package-name-rule'
+			)
 				continue;
 			lines.push(`  ✓ ${fmtPackageId(d.record)} — ${d.matchedPackageRule}`);
 		}

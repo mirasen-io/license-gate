@@ -122,22 +122,44 @@ leaf must appear verbatim above.
 ### `licenses/allowed-packages.txt`
 
 ```
-# Package overrides. Three forms accepted, anything else is a config error (exit 2):
+# Package overrides. Five forms accepted, anything else is a config error (exit 2):
 #
 #   @scope/*                  trusted internal namespace
 #   package-name@version      exact installed unscoped package version
 #   @scope/package@version    exact installed scoped package version
+#   package-name@*            any installed version of exact unscoped package
+#   @scope/package@*          any installed version of exact scoped package
 
 @mirasen/*
 internal-tool@1.2.3
 @types/node@22.0.0
+spawndamnit@*
+@scope/weird-package@*
 ```
 
 Override matches are **always visible** in the report (`matchedPackageRule`); they are
-never silent excludes. When both an `@scope/*` rule and a more-specific
-`package@version` rule match the same package, the more specific rule wins in the audit
-trail. When a package is both in `allowed-hard.txt` and matches an override,
-`allowed-by-license` wins — overrides are escape hatches, not the default story.
+never silent excludes. When several rules match the same package, the most specific rule
+wins in the audit trail, with this strict precedence: license-allow first, then exact
+`package@version`, then `package@*` / `@scope/package@*`, then `@scope/*`. When a package
+is in `allowed-hard.txt`, `allowed-by-license` wins — overrides are escape hatches, not
+the default story.
+
+**When to use which form** (most-precise to least-precise, prefer the narrower form):
+
+- `package-name@version` / `@scope/package@version` — highest precision; pin exactly
+  one version of one package. Use this for one-off, manually-reviewed packages whose
+  license terms you accept at a specific version.
+- `package-name@*` / `@scope/package@*` — same package, any version. Use this for a
+  manually reviewed package whose maintainers don't change license terms across
+  versions, when you don't want to re-edit the override every time Dependabot bumps
+  it. **Not** the default first choice — prefer the exact-version form unless version
+  bumps would routinely force allowlist edits.
+- `@scope/*` — broadest. Reserve for trusted internal namespaces such as `@mirasen/*`.
+  Do not use for unrelated third-party packages that happen to share a namespace.
+
+All five forms are escape hatches and remain audit-visible. The JSON report's
+`matchedPackageRule` field carries the matching rule verbatim so reviewers can see at
+a glance which override was applied.
 
 ## Strict by design — what `license-gate` will NOT do
 

@@ -194,3 +194,161 @@ describe('evaluateRecord — override precedence', () => {
 		}
 	});
 });
+
+describe('evaluateRecord — package-name wildcard rule (`name@*` / `@scope/name@*`)', () => {
+	it('matches any installed version of exact unscoped package (license could-not-determine)', () => {
+		const r = rec({
+			name: 'some-package',
+			version: '1.2.3',
+			packageId: 'some-package@1.2.3',
+			license: LICENSE_COULD_NOT_DETERMINE
+		});
+		const rules = parseAllowedPackages('some-package@*\n', '/x');
+		const decision = evaluateRecord(r, empty, rules);
+		expect(decision.outcome).toBe('allowed-by-package-name-rule');
+		if (decision.outcome === 'allowed-by-package-name-rule') {
+			expect(decision.matchedPackageRule).toBe('some-package@*');
+		}
+	});
+
+	it('matches any installed version of exact unscoped package (license fails allowlist)', () => {
+		const r = rec({
+			name: 'some-package',
+			version: '9.9.9',
+			packageId: 'some-package@9.9.9',
+			license: 'NotAllowed'
+		});
+		const rules = parseAllowedPackages('some-package@*\n', '/x');
+		const decision = evaluateRecord(r, new Set(['MIT']), rules);
+		expect(decision.outcome).toBe('allowed-by-package-name-rule');
+		if (decision.outcome === 'allowed-by-package-name-rule') {
+			expect(decision.matchedPackageRule).toBe('some-package@*');
+		}
+	});
+
+	it('does not match similarly named unscoped package', () => {
+		const r = rec({
+			name: 'some-package-extra',
+			version: '1.2.3',
+			packageId: 'some-package-extra@1.2.3',
+			license: LICENSE_COULD_NOT_DETERMINE
+		});
+		const rules = parseAllowedPackages('some-package@*\n', '/x');
+		const decision = evaluateRecord(r, empty, rules);
+		expect(decision.outcome).toBe('violation');
+	});
+
+	it('matches any installed version of exact scoped package', () => {
+		const r = rec({
+			name: '@scope/weird-package',
+			version: '4.5.6',
+			packageId: '@scope/weird-package@4.5.6',
+			license: LICENSE_COULD_NOT_DETERMINE
+		});
+		const rules = parseAllowedPackages('@scope/weird-package@*\n', '/x');
+		const decision = evaluateRecord(r, empty, rules);
+		expect(decision.outcome).toBe('allowed-by-package-name-rule');
+		if (decision.outcome === 'allowed-by-package-name-rule') {
+			expect(decision.matchedPackageRule).toBe('@scope/weird-package@*');
+		}
+	});
+
+	it('does not match other packages in same scope', () => {
+		const r = rec({
+			name: '@scope/other-package',
+			version: '4.5.6',
+			packageId: '@scope/other-package@4.5.6',
+			license: LICENSE_COULD_NOT_DETERMINE
+		});
+		const rules = parseAllowedPackages('@scope/weird-package@*\n', '/x');
+		const decision = evaluateRecord(r, empty, rules);
+		expect(decision.outcome).toBe('violation');
+	});
+
+	it('unscoped wildcard does not match scoped package of same trailing name', () => {
+		const r = rec({
+			name: '@scope/weird-package',
+			version: '4.5.6',
+			packageId: '@scope/weird-package@4.5.6',
+			license: LICENSE_COULD_NOT_DETERMINE
+		});
+		const rules = parseAllowedPackages('weird-package@*\n', '/x');
+		const decision = evaluateRecord(r, empty, rules);
+		expect(decision.outcome).toBe('violation');
+	});
+
+	it('scoped wildcard does not match scoped package with extra name suffix', () => {
+		const r = rec({
+			name: '@scope/weird-package-extra',
+			version: '4.5.6',
+			packageId: '@scope/weird-package-extra@4.5.6',
+			license: LICENSE_COULD_NOT_DETERMINE
+		});
+		const rules = parseAllowedPackages('@scope/weird-package@*\n', '/x');
+		const decision = evaluateRecord(r, empty, rules);
+		expect(decision.outcome).toBe('violation');
+	});
+});
+
+describe('evaluateRecord — wildcard precedence (license > package@version > package@* > @scope/*)', () => {
+	it('exact package@version wins over package-name wildcard', () => {
+		const r = rec({
+			name: 'some-package',
+			version: '1.2.3',
+			packageId: 'some-package@1.2.3',
+			license: 'NotAllowed'
+		});
+		const rules = parseAllowedPackages('some-package@1.2.3\nsome-package@*\n', '/x');
+		const decision = evaluateRecord(r, new Set(), rules);
+		expect(decision.outcome).toBe('allowed-by-package-version-rule');
+		if (decision.outcome === 'allowed-by-package-version-rule') {
+			expect(decision.matchedPackageRule).toBe('some-package@1.2.3');
+		}
+	});
+
+	it('package-name wildcard wins over @scope/*', () => {
+		const r = rec({
+			name: '@scope/weird-package',
+			version: '4.5.6',
+			packageId: '@scope/weird-package@4.5.6',
+			license: 'NotAllowed'
+		});
+		const rules = parseAllowedPackages('@scope/*\n@scope/weird-package@*\n', '/x');
+		const decision = evaluateRecord(r, new Set(), rules);
+		expect(decision.outcome).toBe('allowed-by-package-name-rule');
+		if (decision.outcome === 'allowed-by-package-name-rule') {
+			expect(decision.matchedPackageRule).toBe('@scope/weird-package@*');
+		}
+	});
+
+	it('exact version still wins when all three rule kinds match the package', () => {
+		const r = rec({
+			name: '@scope/weird-package',
+			version: '4.5.6',
+			packageId: '@scope/weird-package@4.5.6',
+			license: 'NotAllowed'
+		});
+		const rules = parseAllowedPackages(
+			'@scope/*\n@scope/weird-package@*\n@scope/weird-package@4.5.6\n',
+			'/x'
+		);
+		const decision = evaluateRecord(r, new Set(), rules);
+		expect(decision.outcome).toBe('allowed-by-package-version-rule');
+		if (decision.outcome === 'allowed-by-package-version-rule') {
+			expect(decision.matchedPackageRule).toBe('@scope/weird-package@4.5.6');
+		}
+	});
+
+	it('allowed-by-license still beats every override (incl. package@*)', () => {
+		const r = rec({
+			name: 'some-package',
+			version: '1.2.3',
+			packageId: 'some-package@1.2.3',
+			license: 'MIT'
+		});
+		const rules = parseAllowedPackages('some-package@*\nsome-package@1.2.3\n@scope/*\n', '/x');
+		const decision = evaluateRecord(r, new Set(['MIT']), rules);
+		expect(decision.outcome).toBe('allowed-by-license');
+		expect((decision as { matchedPackageRule?: string }).matchedPackageRule).toBeUndefined();
+	});
+});

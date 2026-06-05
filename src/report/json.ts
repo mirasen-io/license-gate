@@ -14,6 +14,7 @@ export type CheckJsonReport = {
 		allowedByLicense: number;
 		allowedByScopeRule: number;
 		allowedByPackageVersionRule: number;
+		allowedByPackageNameRule: number;
 		violations: number;
 	};
 	decisions: Decision[];
@@ -26,6 +27,7 @@ export function renderCheckJson(input: {
 	let allowedByLicense = 0;
 	let allowedByScopeRule = 0;
 	let allowedByPackageVersionRule = 0;
+	let allowedByPackageNameRule = 0;
 	let violations = 0;
 	for (const d of input.decisions) {
 		switch (d.outcome) {
@@ -37,6 +39,9 @@ export function renderCheckJson(input: {
 				break;
 			case 'allowed-by-package-version-rule':
 				allowedByPackageVersionRule++;
+				break;
+			case 'allowed-by-package-name-rule':
+				allowedByPackageNameRule++;
 				break;
 			case 'violation':
 				violations++;
@@ -54,6 +59,7 @@ export function renderCheckJson(input: {
 			allowedByLicense,
 			allowedByScopeRule,
 			allowedByPackageVersionRule,
+			allowedByPackageNameRule,
 			violations
 		},
 		decisions: input.decisions

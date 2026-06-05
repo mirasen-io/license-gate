@@ -9,12 +9,19 @@
  *   1. `@scope/*`                   trusted internal namespace
  *   2. `package-name@version`       exact installed unscoped package version
  *   3. `@scope/package@version`     exact installed scoped package version
+ *   4. `package-name@*`             package-name wildcard (any version),
+ *                                   unscoped — narrowly scoped escape hatch
+ *                                   for manually reviewed packages whose
+ *                                   version bumps should not require
+ *                                   re-editing this file.
+ *   5. `@scope/package@*`           package-name wildcard (any version),
+ *                                   scoped — same intent as form 4.
  *
  * Everything else is rejected, including:
  *   - bare `package-name` (no version)
  *   - bare `@scope/package` (no version, no `*`)
- *   - `package@*`, `@scope/package@*`
  *   - semver ranges: `^1.2.3`, `~1.2.3`, `1.x`, `>=1.0.0`, ...
+ *   - `@scope/*@*`, `*@*`
  *   - regex, generic glob, prefix wildcard, bare `*`
  *   - any whitespace inside the rule
  */
@@ -37,7 +44,7 @@ const EXACT_VERSION = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-
 function rejectWith(path: string, lineNumber: number, line: string, hint: string): never {
 	throw new LicenseGateConfigError(
 		{ kind: 'invalid-package-override-rule', path, lineNumber, line },
-		`license-gate: ${path}:${lineNumber}: invalid package override rule "${line}". ${hint} Accepted forms: "@scope/*", "package@version", "@scope/package@version".`
+		`license-gate: ${path}:${lineNumber}: invalid package override rule "${line}". ${hint} Accepted forms: "@scope/*", "package@version", "@scope/package@version", "package@*", "@scope/package@*".`
 	);
 }
 
@@ -60,6 +67,44 @@ function parseRule(path: string, lineNumber: number, raw: string): AllowedPackag
 			);
 		}
 		return { kind: 'scope', scope, ruleText: trimmed };
+	}
+
+	// Forms 4 and 5: package-name wildcard `name@*` / `@scope/name@*`.
+	// The `*` is allowed ONLY as the trailing version sentinel; the head must
+	// be a valid (scoped or unscoped) package name with no other `*`.
+	if (trimmed.endsWith('@*')) {
+		const head = trimmed.slice(0, -2);
+		// Reject if `*` appears anywhere in the head — covers `@scope/*@*`,
+		// `*@*`, `pkg*@*`, etc.
+		if (head.length === 0 || head.includes('*')) {
+			rejectWith(
+				path,
+				lineNumber,
+				trimmed,
+				'package-name wildcard must be `package@*` or `@scope/package@*`.'
+			);
+		}
+		if (head.startsWith('@')) {
+			const slash = head.indexOf('/');
+			if (slash <= 1 || slash === head.length - 1) {
+				rejectWith(
+					path,
+					lineNumber,
+					trimmed,
+					'scoped package-name wildcard must be `@scope/name@*`.'
+				);
+			}
+			const scope = head.slice(0, slash);
+			const subname = head.slice(slash + 1);
+			if (!SCOPE.test(scope) || !UNSCOPED_NAME.test(subname)) {
+				rejectWith(path, lineNumber, trimmed, 'scope or package name is malformed.');
+			}
+			return { kind: 'scoped-package-name', scope, name: head, ruleText: trimmed };
+		}
+		if (!UNSCOPED_NAME.test(head)) {
+			rejectWith(path, lineNumber, trimmed, 'package name is malformed.');
+		}
+		return { kind: 'package-name', name: head, ruleText: trimmed };
 	}
 
 	// Reject genuinely glob/regex-like characters early. We deliberately do
