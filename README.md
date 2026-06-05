@@ -13,6 +13,9 @@ workspaces, and monorepos.
 package against a literal license allowlist you control, and exits non-zero when anything
 fails. It is intentionally small and refuses to guess.
 
+It is a strict alternative to generic npm license checkers: instead of guessing licenses
+or hiding exceptions, it enforces your local policy file and shows every override.
+
 ## Install
 
 ```bash
@@ -149,11 +152,11 @@ the default story.
 - `package-name@version` / `@scope/package@version` — highest precision; pin exactly
   one version of one package. Use this for one-off, manually-reviewed packages whose
   license terms you accept at a specific version.
-- `package-name@*` / `@scope/package@*` — same package, any version. Use this for a
-  manually reviewed package whose maintainers don't change license terms across
-  versions, when you don't want to re-edit the override every time Dependabot bumps
-  it. **Not** the default first choice — prefer the exact-version form unless version
-  bumps would routinely force allowlist edits.
+- `package-name@*` / `@scope/package@*` — same package, any version. Use this when you
+  intentionally approve the package at the package-name level rather than pinning every
+  installed version, for example to avoid repeated Dependabot allowlist edits after
+  routine version bumps. **Not** the default first choice — prefer the exact-version
+  form unless version bumps would routinely force allowlist edits.
 - `@scope/*` — broadest. Reserve for trusted internal namespaces such as `@mirasen/*`.
   Do not use for unrelated third-party packages that happen to share a namespace.
 
@@ -182,7 +185,8 @@ a glance which override was applied.
   allowed-by-license bucket as a count and lists every package override
   (`matchedPackageRule`) and every violation in full; nothing is dropped.
 - **No denylist file** — strict allowlist only.
-- **No pnpm, yarn, Gradle, or Maven support.** npm only in v1.
+- **No pnpm, yarn, Gradle, or Maven support in v1.** `license-gate` currently targets
+  npm projects and npm workspaces.
 - **No bundle-level analysis.** Vite/Rollup/etc. are out of scope.
 - **No markdown/tree visualisers, no SaaS upload modes, no enterprise tiers.**
 
