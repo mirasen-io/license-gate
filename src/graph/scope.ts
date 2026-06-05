@@ -55,12 +55,19 @@ function findContainingWorkspace(node: Arborist.Node, workspaces: WorkspaceInfo[
 }
 
 /** Resolve the scope for a command: load the graph, optionally narrow to a
- *  workspace, and return project-owned records (no Arborist values escape). */
+ *  workspace, and return project-owned records (no Arborist values escape).
+ *  All exposed `record.path` values are relative to the selected project root
+ *  (`opts.cwd`, canonicalised) — see `toExposedPath`. */
 export async function resolveScope(opts: {
 	cwd: string;
 	workspace: string | null;
 }): Promise<ResolvedScope> {
 	const tree = await loadInstalledGraph(opts.cwd);
+
+	// Canonicalise the selected project root once so it lines up with
+	// Arborist's realpaths (which are themselves canonicalised). This is the
+	// base for every exposed relative path.
+	const projectRoot = canonical(opts.cwd);
 
 	const workspaceList: WorkspaceInfo[] = [];
 	if (tree.workspaces) {
@@ -82,7 +89,7 @@ export async function resolveScope(opts: {
 		evaluationNodes = [];
 		for (const node of allInventory) {
 			if (node.isRoot) {
-				skippedProjectRoot = nodeToRecord(node, null);
+				skippedProjectRoot = nodeToRecord(node, null, projectRoot);
 				continue;
 			}
 			evaluationNodes.push(node);
@@ -103,25 +110,28 @@ export async function resolveScope(opts: {
 	}
 
 	const evaluationRecords = dedupedEvaluation.map((n) =>
-		nodeToRecord(n, findContainingWorkspace(n, workspaceList))
+		nodeToRecord(n, findContainingWorkspace(n, workspaceList), projectRoot)
 	);
 
 	// All collected records (for collect output): include the project root too.
+	// Dedup by realpath here too — `record.path` is now relative and would
+	// collide for legitimately-distinct copies hoisted in different scopes.
 	const collectedSeen = new Set<string>();
 	const allCollectedRecords: CollectedRecord[] = [];
 	if (!opts.workspace) {
 		for (const node of allInventory) {
 			if (node.isRoot) {
-				const rec = nodeToRecord(node, null);
+				const rec = nodeToRecord(node, null, projectRoot);
 				allCollectedRecords.push({ ...rec, isProjectRoot: true });
 				collectedSeen.add(node.realpath);
 			}
 		}
 	}
-	for (const r of evaluationRecords) {
-		if (collectedSeen.has(r.path)) continue;
-		collectedSeen.add(r.path);
-		allCollectedRecords.push(r);
+	for (let i = 0; i < dedupedEvaluation.length; i++) {
+		const realpath = dedupedEvaluation[i]!.realpath;
+		if (collectedSeen.has(realpath)) continue;
+		collectedSeen.add(realpath);
+		allCollectedRecords.push(evaluationRecords[i]!);
 	}
 
 	return {

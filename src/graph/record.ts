@@ -3,6 +3,7 @@
  * Pure: no fs reads, no Arborist methods called here beyond field access.
  */
 
+import { relative, sep } from 'node:path';
 import type Arborist from '@npmcli/arborist';
 
 import {
@@ -27,6 +28,22 @@ type ArboristPackageJson = {
 function manifestOf(node: Arborist.Node): ArboristPackageJson | undefined {
 	// Cast bridges the broad DefinitelyTyped manifest to our narrow shape.
 	return node.package as ArboristPackageJson | undefined;
+}
+
+/**
+ * Convert an absolute filesystem path into the path we expose in public
+ * records and reports: relative to the selected project root, POSIX-style
+ * separators, and `"."` when the path equals the project root.
+ *
+ * Centralised here so reporters and the public API never see absolute local
+ * paths — those would leak `/Users/<name>/...` style strings into JSON
+ * artifacts, CI logs, and collected reports.
+ */
+export function toExposedPath(absolutePath: string, projectRoot: string): string {
+	const rel = relative(projectRoot, absolutePath);
+	if (rel === '' || rel === '.') return '.';
+	// Normalise platform separators to POSIX `/` for stable cross-platform output.
+	return sep === '/' ? rel : rel.split(sep).join('/');
 }
 
 /** Detect the license string from a package.json. v1 is non-inferential:
@@ -106,12 +123,16 @@ function parseAuthorString(author: string): {
 	return { publisher, email };
 }
 
-/** Build an InstalledPackageRecord from an Arborist Node. The `workspace`
- *  field is the closest containing workspace name, computed by the caller
- *  when the project tree is in scope. */
+/** Build an InstalledPackageRecord from an Arborist Node.
+ *
+ *  `workspace` is the closest containing workspace name, computed by the
+ *  caller when the project tree is in scope. `projectRoot` is the selected
+ *  project root (canonicalised) and is used to convert the node's absolute
+ *  realpath to the relative POSIX-style path that the record exposes. */
 export function nodeToRecord(
 	node: Arborist.Node,
-	workspace: string | null
+	workspace: string | null,
+	projectRoot: string
 ): InstalledPackageRecord {
 	const pkg = manifestOf(node);
 	const name = pkg?.name ?? node.name ?? '';
@@ -124,7 +145,7 @@ export function nodeToRecord(
 		name,
 		version,
 		packageId: `${name}@${version}`,
-		path: node.realpath,
+		path: toExposedPath(node.realpath, projectRoot),
 		workspace,
 		license,
 		repository,

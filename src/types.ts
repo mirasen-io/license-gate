@@ -12,14 +12,18 @@ export const LICENSE_COULD_NOT_DETERMINE = 'could not determine';
 export type LicenseCouldNotDetermine = typeof LICENSE_COULD_NOT_DETERMINE;
 
 /** A flat record of one physically-installed package copy. `path` is the
- *  realpath; two copies of the same `name@version` at different physical paths
- *  are distinct records. */
+ *  copy's location relative to the selected project root; two copies of the
+ *  same `name@version` at different physical paths are still distinct
+ *  records. */
 export type InstalledPackageRecord = {
 	name: string;
 	version: string;
 	/** `${name}@${version}` — convenience composite. */
 	packageId: string;
-	/** Absolute realpath of the installed copy. */
+	/** Path of the installed copy relative to the selected project root,
+	 *  using POSIX-style `/` separators. The project root itself is exposed
+	 *  as `"."`. Internal graph/fs logic continues to use absolute paths;
+	 *  this field is the public, redaction-safe form. */
 	path: string;
 	/** Name of the closest containing workspace, or `null` if the record is
 	 *  the workspace itself or a transitive dependency hoisted at the project
