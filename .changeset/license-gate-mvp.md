@@ -28,3 +28,10 @@ collect` (enumerate installed package/license metadata, no policy I/O).
   `collect --out <path>` / `collect --json <path>`.
 - Programmatic API exported from `@mirasen/license-gate` (`runCheck`, `runCollect`).
 - Engines tightened to Node ≥22.9.0.
+- Public package records (`InstalledPackageRecord`, `CollectedRecord`, every JSON
+  decision/record emitted by `check --json` / `collect --json`) intentionally do NOT
+  carry a `workspace` field. Physical placement of an installed copy (hoisted vs.
+  workspace-local) is communicated entirely through the relative `path` field —
+  `node_modules/foo` for hoisted deps, `apps/web/node_modules/foo` for non-hoisted
+  workspace-local copies. The `--workspace <name|path>` CLI flag still narrows the
+  evaluation set to a workspace's reachable graph; that behavior is unchanged.

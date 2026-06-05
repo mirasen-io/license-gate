@@ -14,7 +14,6 @@ function rec(over: Partial<InstalledPackageRecord> = {}): InstalledPackageRecord
 		version: '4.17.21',
 		packageId: 'lodash@4.17.21',
 		path: '/fake/node_modules/lodash',
-		workspace: null,
 		license: 'MIT',
 		...over
 	};

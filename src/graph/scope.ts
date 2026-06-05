@@ -1,8 +1,8 @@
 /**
  * Build a resolved evaluation scope from the installed graph. This module owns
- * the BFS/dedup/workspace-containment logic that touches Arborist Node fields,
- * so callers in `commands/` only see project-owned `InstalledPackageRecord`
- * values — Arborist types do not leak past this boundary.
+ * the BFS/dedup logic that touches Arborist Node fields, so callers in
+ * `commands/` only see project-owned `InstalledPackageRecord` values —
+ * Arborist types do not leak past this boundary.
  */
 
 import { existsSync, realpathSync } from 'node:fs';
@@ -21,37 +21,12 @@ export type ResolvedScope = {
 	skippedProjectRoot: InstalledPackageRecord | null;
 };
 
-type WorkspaceInfo = { name: string; realpath: string };
-
 function canonical(p: string): string {
 	try {
 		return existsSync(p) ? realpathSync(p) : p;
 	} catch {
 		return p;
 	}
-}
-
-/** Compute the closest containing workspace for a node. We use
- *  `tree.workspaces` as the authoritative source for declared workspaces —
- *  that map is reliably populated whenever the project declares `workspaces`
- *  in package.json, regardless of whether Arborist ended up tagging
- *  individual nodes as `isWorkspace`. */
-function findContainingWorkspace(node: Arborist.Node, workspaces: WorkspaceInfo[]): string | null {
-	if (node.isRoot) return null;
-	const real = node.realpath;
-	let best: WorkspaceInfo | null = null;
-	for (const ws of workspaces) {
-		if (real === ws.realpath) {
-			// node IS the workspace itself — record `workspace: null` because
-			// `workspace` describes containment (a transitive dep installed
-			// under the workspace), not identity.
-			return null;
-		}
-		if (real.startsWith(ws.realpath + '/')) {
-			if (!best || ws.realpath.length > best.realpath.length) best = ws;
-		}
-	}
-	return best?.name ?? null;
 }
 
 /** Resolve the scope for a command: load the graph, optionally narrow to a
@@ -69,13 +44,6 @@ export async function resolveScope(opts: {
 	// base for every exposed relative path.
 	const projectRoot = canonical(opts.cwd);
 
-	const workspaceList: WorkspaceInfo[] = [];
-	if (tree.workspaces) {
-		for (const [name, p] of tree.workspaces.entries()) {
-			workspaceList.push({ name, realpath: canonical(p) });
-		}
-	}
-
 	const allInventory: Arborist.Node[] = Array.from(tree.inventory.values());
 
 	let evaluationNodes: Arborist.Node[];
@@ -89,7 +57,7 @@ export async function resolveScope(opts: {
 		evaluationNodes = [];
 		for (const node of allInventory) {
 			if (node.isRoot) {
-				skippedProjectRoot = nodeToRecord(node, null, projectRoot);
+				skippedProjectRoot = nodeToRecord(node, projectRoot);
 				continue;
 			}
 			evaluationNodes.push(node);
@@ -109,9 +77,7 @@ export async function resolveScope(opts: {
 		dedupedEvaluation.push(target);
 	}
 
-	const evaluationRecords = dedupedEvaluation.map((n) =>
-		nodeToRecord(n, findContainingWorkspace(n, workspaceList), projectRoot)
-	);
+	const evaluationRecords = dedupedEvaluation.map((n) => nodeToRecord(n, projectRoot));
 
 	// All collected records (for collect output): include the project root too.
 	// Dedup by realpath here too — `record.path` is now relative and would
@@ -121,7 +87,7 @@ export async function resolveScope(opts: {
 	if (!opts.workspace) {
 		for (const node of allInventory) {
 			if (node.isRoot) {
-				const rec = nodeToRecord(node, null, projectRoot);
+				const rec = nodeToRecord(node, projectRoot);
 				allCollectedRecords.push({ ...rec, isProjectRoot: true });
 				collectedSeen.add(node.realpath);
 			}

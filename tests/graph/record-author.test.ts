@@ -24,33 +24,33 @@ const PROJECT_ROOT = '/fake';
 
 describe('extractAuthor (regex-free author parsing via nodeToRecord)', () => {
 	it('splits "Name <email@example.com>" into publisher and email', () => {
-		const rec = nodeToRecord(fakeNode({ author: 'Name <email@example.com>' }), null, PROJECT_ROOT);
+		const rec = nodeToRecord(fakeNode({ author: 'Name <email@example.com>' }), PROJECT_ROOT);
 		expect(rec.publisher).toBe('Name');
 		expect(rec.email).toBe('email@example.com');
 	});
 
 	it('treats a bare "Name" string as publisher only', () => {
-		const rec = nodeToRecord(fakeNode({ author: 'Name' }), null, PROJECT_ROOT);
+		const rec = nodeToRecord(fakeNode({ author: 'Name' }), PROJECT_ROOT);
 		expect(rec.publisher).toBe('Name');
 		expect(rec.email).toBeUndefined();
 	});
 
 	it('keeps an unterminated "Name <broken" verbatim as publisher (no email)', () => {
-		const rec = nodeToRecord(fakeNode({ author: 'Name <broken' }), null, PROJECT_ROOT);
+		const rec = nodeToRecord(fakeNode({ author: 'Name <broken' }), PROJECT_ROOT);
 		expect(rec.publisher).toBe('Name <broken');
 		expect(rec.email).toBeUndefined();
 	});
 
 	it('keeps "<email@example.com>" verbatim as publisher when the name is missing', () => {
 		// Publisher is missing, so this is not the clear "Name <email>" form.
-		const rec = nodeToRecord(fakeNode({ author: '<email@example.com>' }), null, PROJECT_ROOT);
+		const rec = nodeToRecord(fakeNode({ author: '<email@example.com>' }), PROJECT_ROOT);
 		expect(rec.publisher).toBe('<email@example.com>');
 		expect(rec.email).toBeUndefined();
 	});
 
 	it('keeps "Name <>" verbatim as publisher when the email is empty', () => {
 		// Email is empty — fall back to the verbatim string.
-		const rec = nodeToRecord(fakeNode({ author: 'Name <>' }), null, PROJECT_ROOT);
+		const rec = nodeToRecord(fakeNode({ author: 'Name <>' }), PROJECT_ROOT);
 		expect(rec.publisher).toBe('Name <>');
 		expect(rec.email).toBeUndefined();
 	});
@@ -58,7 +58,7 @@ describe('extractAuthor (regex-free author parsing via nodeToRecord)', () => {
 	it('uses the LAST "<" as the email delimiter for "A <B <email@example.com>"', () => {
 		// Parser uses lastIndexOf('<') — everything before the final '<' is
 		// the publisher (verbatim, including the inner "<B").
-		const rec = nodeToRecord(fakeNode({ author: 'A <B <email@example.com>' }), null, PROJECT_ROOT);
+		const rec = nodeToRecord(fakeNode({ author: 'A <B <email@example.com>' }), PROJECT_ROOT);
 		expect(rec.publisher).toBe('A <B');
 		expect(rec.email).toBe('email@example.com');
 	});
@@ -66,7 +66,6 @@ describe('extractAuthor (regex-free author parsing via nodeToRecord)', () => {
 	it('reads name and email from an object-form author', () => {
 		const rec = nodeToRecord(
 			fakeNode({ author: { name: 'Name', email: 'email@example.com' } }),
-			null,
 			PROJECT_ROOT
 		);
 		expect(rec.publisher).toBe('Name');
@@ -74,7 +73,7 @@ describe('extractAuthor (regex-free author parsing via nodeToRecord)', () => {
 	});
 
 	it('omits publisher and email when no author field is present', () => {
-		const rec = nodeToRecord(fakeNode({}), null, PROJECT_ROOT);
+		const rec = nodeToRecord(fakeNode({}), PROJECT_ROOT);
 		expect(rec.publisher).toBeUndefined();
 		expect(rec.email).toBeUndefined();
 	});

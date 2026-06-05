@@ -49,8 +49,8 @@ formatting branches in [src/report/human.ts](src/report/human.ts).
   `WorkspaceInfo` plumbing in `src/graph/scope.ts`, and the corresponding
   parameter of `nodeToRecord` in `src/graph/record.ts`.
 - Update the spec capability `license-gate` so the `Internal data model`
-  requirement no longer mentions `workspace` and the `workspace field reflects
-  containment` scenario is removed.
+  requirement no longer mentions `workspace`, and remove the
+  `workspace field reflects containment` scenario.
 - Update tests to remove `workspace: null` literals from in-test record
   fixtures and add explicit assertions that JSON outputs do NOT contain a
   `workspace` key.

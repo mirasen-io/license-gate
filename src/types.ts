@@ -23,12 +23,10 @@ export type InstalledPackageRecord = {
 	/** Path of the installed copy relative to the selected project root,
 	 *  using POSIX-style `/` separators. The project root itself is exposed
 	 *  as `"."`. Internal graph/fs logic continues to use absolute paths;
-	 *  this field is the public, redaction-safe form. */
+	 *  this field is the public, redaction-safe form. Physical placement of
+	 *  an installed copy (hoisted vs. workspace-local) is communicated
+	 *  entirely through this field. */
 	path: string;
-	/** Name of the closest containing workspace, or `null` if the record is
-	 *  the workspace itself or a transitive dependency hoisted at the project
-	 *  root. */
-	workspace: string | null;
 	/** Trimmed verbatim string from `package.json#license`, or the
 	 *  `LICENSE_COULD_NOT_DETERMINE` sentinel. Never normalised. */
 	license: string | LicenseCouldNotDetermine;

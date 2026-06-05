@@ -10,12 +10,6 @@ import type {
 	ViolationReason
 } from '../types.js';
 
-function fmtPackageId(record: InstalledPackageRecord): string {
-	return record.workspace
-		? `${record.packageId} [workspace: ${record.workspace}]`
-		: record.packageId;
-}
-
 function fmtViolationReason(reason: ViolationReason): string {
 	switch (reason.kind) {
 		case 'package-not-in-allowlist':
@@ -104,7 +98,7 @@ export function renderCheckHuman(input: {
 				d.outcome !== 'allowed-by-package-name-rule'
 			)
 				continue;
-			lines.push(`  ✓ ${fmtPackageId(d.record)} — ${d.matchedPackageRule}`);
+			lines.push(`  ✓ ${d.record.packageId} — ${d.matchedPackageRule}`);
 		}
 		lines.push('');
 	}
@@ -112,7 +106,7 @@ export function renderCheckHuman(input: {
 	if (violations.length > 0) {
 		lines.push('Violations:');
 		for (const v of violations) {
-			lines.push(`  ✗ ${fmtPackageId(v.record)}`);
+			lines.push(`  ✗ ${v.record.packageId}`);
 			lines.push(`      ${fmtViolationReason(v.reason)}`);
 			lines.push(`      path: ${v.record.path}`);
 		}
@@ -133,8 +127,7 @@ export function renderCollectHuman(records: CollectedRecord[]): string {
 	lines.push('');
 	for (const r of records) {
 		const tag = r.isProjectRoot ? ' (project root)' : '';
-		const ws = r.workspace ? ` [workspace: ${r.workspace}]` : '';
-		lines.push(`  ${r.packageId}${tag}${ws}`);
+		lines.push(`  ${r.packageId}${tag}`);
 		lines.push(`    license: ${r.license}`);
 		lines.push(`    path:    ${r.path}`);
 		if (r.repository) lines.push(`    repo:    ${r.repository}`);

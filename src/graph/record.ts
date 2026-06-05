@@ -125,15 +125,10 @@ function parseAuthorString(author: string): {
 
 /** Build an InstalledPackageRecord from an Arborist Node.
  *
- *  `workspace` is the closest containing workspace name, computed by the
- *  caller when the project tree is in scope. `projectRoot` is the selected
- *  project root (canonicalised) and is used to convert the node's absolute
- *  realpath to the relative POSIX-style path that the record exposes. */
-export function nodeToRecord(
-	node: Arborist.Node,
-	workspace: string | null,
-	projectRoot: string
-): InstalledPackageRecord {
+ *  `projectRoot` is the selected project root (canonicalised) and is used
+ *  to convert the node's absolute realpath to the relative POSIX-style path
+ *  that the record exposes. */
+export function nodeToRecord(node: Arborist.Node, projectRoot: string): InstalledPackageRecord {
 	const pkg = manifestOf(node);
 	const name = pkg?.name ?? node.name ?? '';
 	const version = pkg?.version ?? node.version ?? '';
@@ -146,7 +141,6 @@ export function nodeToRecord(
 		version,
 		packageId: `${name}@${version}`,
 		path: toExposedPath(node.realpath, projectRoot),
-		workspace,
 		license,
 		repository,
 		publisher,

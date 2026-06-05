@@ -27,7 +27,6 @@ function rec(over: Partial<InstalledPackageRecord> = {}): InstalledPackageRecord
 		version: '1.0.0',
 		packageId: 'pkg@1.0.0',
 		path: 'node_modules/pkg',
-		workspace: null,
 		license: 'MIT',
 		...over
 	};
