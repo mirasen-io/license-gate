@@ -52,13 +52,15 @@ MAY include `offendingLeaves: string[]` when
 
 #### Scenario: license-not-in-allowlist may carry diagnostic detail
 
-- **WHEN** a `license-not-in-allowlist` violation is emitted
-- **THEN** it MAY carry a `detailCode` of `literal-not-allowed-and-spdx-unparseable` or `spdx-expression-not-satisfied`, and MAY include `offendingLeaves: string[]` when `detailCode === "spdx-expression-not-satisfied"`
+- **WHEN** a violation has reason `license-not-in-allowlist` and arose from SPDX parse failure
+- **THEN** the violation includes `detailCode: "literal-not-allowed-and-spdx-unparseable"`
 
-## REMOVED Requirements
+#### Scenario: spdx-expression-not-satisfied includes offendingLeaves
 
-### Requirement: workspace field reflects containment
+- **WHEN** a violation has `detailCode: "spdx-expression-not-satisfied"`
+- **THEN** the violation includes `offendingLeaves` listing the literal leaves that did not match `allowed-hard.txt`
 
-**Reason**: The `workspace` field on `InstalledPackageRecord` was misleading. It described physical containment (the workspace directory under whose `node_modules` an installed copy sat), not dependency ownership. In typical hoisted installs it was `null` for nearly every record — including for the workspace packages themselves and for hoisted dependencies that only one workspace required — so users reasonably mis-read it as "which workspace requires this dependency". Physical placement is already visible through the relative `path` field (`apps/web/node_modules/foo` vs `node_modules/foo`), making the field redundant.
+#### Scenario: decision union includes package-name rule outcome
 
-**Migration**: Consumers of `license-gate check --json` and `license-gate collect --json` SHALL stop reading `record.workspace`. To reason about physical placement of an installed copy, read `record.path` (e.g., a path beginning with `apps/<workspace>/node_modules/` indicates a non-hoisted copy local to that workspace). True dependency-ownership attribution (which workspace(s) require a given package via the dependency graph) is intentionally not provided by this change and would be introduced as a separate, edge-graph-based requirement (e.g., a `requiredByWorkspaces: string[]` field) in a future change. The `--workspace <name|path>` CLI narrowing flag is unaffected and continues to scope evaluation to a workspace's reachable graph.
+- **WHEN** a consumer enumerates the `Decision` discriminated union
+- **THEN** `allowed-by-package-name-rule` is one of its variants alongside `allowed-by-license`, `allowed-by-scope-rule`, `allowed-by-package-version-rule`, and `violation`

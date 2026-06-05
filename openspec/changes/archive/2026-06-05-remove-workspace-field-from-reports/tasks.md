@@ -26,7 +26,7 @@
 
 ## 5. Spec and docs
 
-- [ ] 5.1 Apply the spec delta to [openspec/specs/license-gate/spec.md](openspec/specs/license-gate/spec.md): edit the `Internal data model` requirement so it no longer lists `workspace` as a record field, replace the `record contains realpath` scenario wording to match the relative-path semantics already in code, add the new scenarios from the delta (`project root path`, `hoisted dependency path`, `no workspace field on records`), and delete the `workspace field reflects containment` scenario. Source of truth for the final wording is `openspec/changes/remove-workspace-field-from-reports/specs/license-gate/spec.md`.
+- [x] 5.1 Apply the spec delta to [openspec/specs/license-gate/spec.md](openspec/specs/license-gate/spec.md): edit the `Internal data model` requirement so it no longer lists `workspace` as a record field, replace the `record contains realpath` scenario wording to match the relative-path semantics already in code, add the new scenarios from the delta (`project root path`, `hoisted dependency path`, `no workspace field on records`), and delete the `workspace field reflects containment` scenario. Source of truth for the final wording is `openspec/changes/remove-workspace-field-from-reports/specs/license-gate/spec.md`.
 - [x] 5.2 Scan [README.md](README.md) for any prose suggesting reports include workspace ownership / containment metadata. Today the README mentions only `--workspace` (narrowing) and the record types' name in passing — confirm no JSON shape examples need editing. If anything is added or rephrased, keep it accurate: `path` shows physical placement; `--workspace` narrows the evaluation graph; workspace ownership/dependents attribution is not part of the report model.
 - [x] 5.3 Add a changeset entry for the breaking schema cleanup (new file under `.changeset/`, e.g. `remove-workspace-field.md`, marking `@mirasen/license-gate` as `major` since the prior MVP changeset is also `major` and the package has not shipped yet — or as `minor`/`patch` if the team lands them all under the same release; confirm with the existing `.changeset/license-gate-mvp.md` convention before choosing).
 
@@ -42,4 +42,4 @@
 ## 7. OpenSpec close-out
 
 - [x] 7.1 Run `openspec validate remove-workspace-field-from-reports --strict` and confirm it passes.
-- [ ] 7.2 After implementation lands and the verification in §6 is green, run `/opsx:archive remove-workspace-field-from-reports` to fold the delta into `openspec/specs/license-gate/spec.md` and move the change to `openspec/changes/archive/`.
+- [x] 7.2 After implementation lands and the verification in §6 is green, run `/opsx:archive remove-workspace-field-from-reports` to fold the delta into `openspec/specs/license-gate/spec.md` and move the change to `openspec/changes/archive/`.

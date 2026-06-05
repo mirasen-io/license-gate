@@ -673,28 +673,41 @@ closed before the process exits.
 
 The system SHALL represent each installed package as an `InstalledPackageRecord`
 containing at minimum: `name`, `version`, `packageId` (= `${name}@${version}`), `path`
-(the realpath of the installed copy), `workspace` (the closest containing workspace
-name, or `null`), and `license` (a literal string or the sentinel `"could not
-determine"`). Optional fields `repository`, `publisher`, and `email` MAY be included
-only when they are directly available from `package.json` without inference. The system
-SHALL NOT include a `licenseFile` field in v1. Decisions SHALL be a closed
-discriminated union with outcomes `allowed-by-license`, `allowed-by-scope-rule`,
-`allowed-by-package-version-rule`, `allowed-by-package-name-rule`, and `violation`.
-Violations SHALL carry exactly one top-level reason: either `license-not-in-allowlist`
-or `package-not-in-allowlist`. `license-not-in-allowlist` MAY include `detailCode` of
-either `literal-not-allowed-and-spdx-unparseable` or
-`spdx-expression-not-satisfied`, and MAY include `offendingLeaves: string[]` when
+(the path of the installed copy relative to the selected project root, using
+POSIX-style `/` separators, with the project root itself exposed as `"."`), and
+`license` (a literal string or the sentinel `"could not determine"`). Optional fields
+`repository`, `publisher`, and `email` MAY be included only when they are directly
+available from `package.json` without inference. Records SHALL NOT include a
+`workspace` field; physical placement of an installed copy is communicated entirely
+through `path`. The system SHALL NOT include a `licenseFile` field in v1. Decisions
+SHALL be a closed discriminated union with outcomes `allowed-by-license`,
+`allowed-by-scope-rule`, `allowed-by-package-version-rule`,
+`allowed-by-package-name-rule`, and `violation`. Violations SHALL carry exactly one
+top-level reason: either `license-not-in-allowlist` or `package-not-in-allowlist`.
+`license-not-in-allowlist` MAY include `detailCode` of either
+`literal-not-allowed-and-spdx-unparseable` or `spdx-expression-not-satisfied`, and
+MAY include `offendingLeaves: string[]` when
 `detailCode === "spdx-expression-not-satisfied"`.
 
-#### Scenario: record contains realpath
+#### Scenario: record contains relative path
 
-- **WHEN** a non-hoisted dependency lives at `apps/web/node_modules/lodash`
-- **THEN** the record's `path` field is the absolute realpath of that directory
+- **WHEN** a non-hoisted dependency lives at `apps/web/node_modules/lodash` of the selected project root
+- **THEN** the record's `path` field is `apps/web/node_modules/lodash`
 
-#### Scenario: workspace field reflects containment
+#### Scenario: project root path
 
-- **WHEN** a transitive dependency is installed under a workspace's local `node_modules`
-- **THEN** the record's `workspace` field is the name of the containing workspace
+- **WHEN** the project root itself appears in collect output
+- **THEN** its record's `path` field is `"."`
+
+#### Scenario: hoisted dependency path
+
+- **WHEN** a dependency is hoisted to the project root's `node_modules/foo`
+- **THEN** the record's `path` field is `node_modules/foo` regardless of which workspaces (if any) require it
+
+#### Scenario: no workspace field on records
+
+- **WHEN** any record is emitted in `check` JSON, `collect` JSON, or any human report
+- **THEN** the record contains no `workspace` field, and the human report contains no `[workspace: <name>]` decoration
 
 #### Scenario: licenseFile is absent in v1
 
