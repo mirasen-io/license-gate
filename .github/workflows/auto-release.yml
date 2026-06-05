@@ -2,7 +2,7 @@ name: Dependabot auto-release
 
 on:
   schedule:
-    - cron: '09 5 1 * *' # At 05:XX on day-of-month 1 (UTC)
+    - cron: '41 4 1 * *' # At 04:41 on day-of-month 1 (UTC)
     # Just for testing purposes - run every 5 minutes
     # - cron: '*/5 * * * *' # Every 5 minutes
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
   #       shell: cat {0}
   # prevents this action from running on forks
   auto-release:
-    if: github.repository == 'kt-npm-modules/npm-typescript-template'
+    if: github.repository == 'mirasen-io/license-gate'
     runs-on: ubuntu-latest
     steps:
       - uses: kt-workflows/actions/dependabot-auto-release@main

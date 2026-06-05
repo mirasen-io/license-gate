@@ -1,0 +1,21 @@
+# licenses/allowed-hard.txt — license allowlist for @mirasen/license-gate
+#
+# One literal accepted license string per line. Blank lines and lines starting
+# with `#` are ignored. Leading/trailing whitespace is trimmed. There is NO
+# normalization, NO regex, NO glob, NO inference.
+#
+# A package's license string passes only if it appears VERBATIM on a line
+# below. SPDX expressions (e.g. "(MIT OR Apache-2.0)") are evaluated literally
+# per leaf — each leaf must appear verbatim below.
+#
+# This file is required for `license-gate check`. Edit it to match the policy
+# of YOUR project; the entries below are common starting points only.
+
+MIT
+Apache-2.0
+BSD-2-Clause
+BSD-3-Clause
+ISC
+0BSD
+CC0-1.0
+Unlicense
