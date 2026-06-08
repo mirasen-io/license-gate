@@ -1,5 +1,11 @@
 # @mirasen/license-gate
 
+## 1.0.1
+
+### Patch Changes
+
+- 4539f7f: dependabot: directory '/', update @types/node
+
 ## 1.0.0
 
 ### Major Changes
