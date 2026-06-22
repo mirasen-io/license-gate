@@ -70,7 +70,7 @@
 		"@changesets/cli": "^2.28.1",
 		"@eslint/compat": "^2.0.0",
 		"@eslint/js": "^10.0.1",
-		"@types/node": "^25.0.2",
+		"@types/node": "^26.0.0",
 		"@types/npmcli__arborist": "^6.3.3",
 		"@vitest/coverage-v8": "^4.1.8",
 		"eslint": "^10.0.2",
