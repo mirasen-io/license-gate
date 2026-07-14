@@ -1,5 +1,22 @@
 # @mirasen/license-gate
 
+## 1.0.2
+
+### Patch Changes
+
+- 7fb8419: dependabot: directory '/', update @npmcli/arborist
+- 7fb8419: dependabot: directory '/', update @types/node
+- 7fb8419: dependabot: directory '/', update prettier
+- 7fb8419: dependabot: directory '/', update typescript-eslint
+- 5d8c990: dependabot: directory '/', update @types/node
+- 5d8c990: dependabot: directory '/', update @vitest/coverage-v8
+- 5d8c990: dependabot: directory '/', update eslint
+- 5d8c990: dependabot: directory '/', update prettier
+- 5d8c990: dependabot: directory '/', update typescript-eslint
+- 5d8c990: dependabot: directory '/', update vitest
+- e66eca8: dependabot: directory '/', update @npmcli/arborist
+- ffb3f93: dependabot: directory '/', update typescript-eslint
+
 ## 1.0.1
 
 ### Patch Changes
