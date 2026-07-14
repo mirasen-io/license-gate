@@ -63,7 +63,7 @@
 		"!dist/**/*.spec.*"
 	],
 	"dependencies": {
-		"@npmcli/arborist": "^9.7.0",
+		"@npmcli/arborist": "^10.0.1",
 		"spdx-expression-parse": "^4.0.0"
 	},
 	"devDependencies": {
