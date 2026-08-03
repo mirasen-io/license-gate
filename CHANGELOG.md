@@ -1,5 +1,12 @@
 # @mirasen/license-gate
 
+## 1.0.3
+
+### Patch Changes
+
+- 41782cd: dependabot: directory '/', update @npmcli/arborist
+- 41782cd: dependabot: directory '/', update @types/node
+
 ## 1.0.2
 
 ### Patch Changes
