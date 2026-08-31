@@ -1,5 +1,27 @@
 # @mirasen/license-gate
 
+## 1.0.3
+
+### Patch Changes
+
+- 41782cd: dependabot: directory '/', update @npmcli/arborist
+- 41782cd: dependabot: directory '/', update @types/node
+- 02946b9: dependabot: directory '/', update globals
+- 02946b9: dependabot: directory '/', update publint
+- 02946b9: dependabot: directory '/', update typescript-eslint
+- 41782cd: dependabot: directory '/', update @types/node
+- c29bad9: dependabot: directory '/', update eslint
+- 02946b9: dependabot: directory '/', update globals
+- 02946b9: dependabot: directory '/', update typescript-eslint
+- 307cfe6: dependabot: directory '/', update @vitest/coverage-v8
+- 02946b9: dependabot: directory '/', update publint
+- 307cfe6: dependabot: directory '/', update vitest
+- 41782cd: dependabot: directory '/', update @types/node
+- c29bad9: dependabot: directory '/', update eslint
+- 02946b9: dependabot: directory '/', update typescript-eslint
+- 886e039: dependabot: dependency updates for PR #20
+- 5e053aa: dependabot: dependency updates for PR #30
+
 ## 1.0.2
 
 ### Patch Changes
