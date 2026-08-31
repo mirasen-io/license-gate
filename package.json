@@ -64,7 +64,7 @@
 	],
 	"dependencies": {
 		"@npmcli/arborist": "^10.0.1",
-		"spdx-expression-parse": "^4.0.0"
+		"spdx-expression-parse": "^5.0.0"
 	},
 	"devDependencies": {
 		"@changesets/cli": "^2.28.1",
