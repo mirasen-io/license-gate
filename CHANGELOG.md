@@ -1,5 +1,14 @@
 # @mirasen/license-gate
 
+## 1.0.4
+
+### Patch Changes
+
+- f4be9d6: chore: update deps
+- 306007b: dependabot: dependency updates for PR #31
+- 732a7f0: dependabot: dependency updates for PR #37
+- 902703d: dependabot: dependency updates for PR #38
+
 ## 1.0.3
 
 ### Patch Changes
