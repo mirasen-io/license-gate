@@ -1,5 +1,13 @@
 # @mirasen/license-gate
 
+## 1.0.5
+
+### Patch Changes
+
+- 5d787c9: dependabot: dependency updates for PR #39
+- 6fa0952: dependabot: dependency updates for PR #41
+- e1828fe: dependabot: dependency updates for PR #42
+
 ## 1.0.4
 
 ### Patch Changes
