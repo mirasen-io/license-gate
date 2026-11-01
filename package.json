@@ -1,7 +1,7 @@
 {
 	"name": "@mirasen/license-gate",
 	"description": "Strict local license policy gate for npm projects.",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"license": "MIT",
 	"author": {
 		"name": "Mirasen"
