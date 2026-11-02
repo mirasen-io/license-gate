@@ -22,7 +22,7 @@
 		"ci",
 		"typescript"
 	],
-	"homepage": "https://chessboard.k-tarmyshov.workers.dev/license-gate",
+	"homepage": "https://mirasen.k-tarmyshov.workers.dev/license-gate",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/mirasen-io/license-gate.git"
