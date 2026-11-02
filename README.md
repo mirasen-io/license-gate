@@ -258,4 +258,4 @@ full set of exported types (`Decision`, `ViolationReason`, `InstalledPackageReco
 
 ## License
 
-[MIT](./LICENSE) © Mirasen
+[MIT](./LICENSE) © mirasen
