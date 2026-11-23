@@ -63,7 +63,7 @@
 		"!dist/**/*.spec.*"
 	],
 	"dependencies": {
-		"@npmcli/arborist": "^10.0.4",
+		"@npmcli/arborist": "^10.0.5",
 		"spdx-expression-parse": "^5.0.0"
 	},
 	"devDependencies": {
@@ -72,15 +72,15 @@
 		"@eslint/js": "^10.0.1",
 		"@types/node": "^26.6.6",
 		"@types/npmcli__arborist": "^6.3.3",
-		"@vitest/coverage-v8": "^5.1.0",
-		"eslint": "^10.14.0",
+		"@vitest/coverage-v8": "^5.1.1",
+		"eslint": "^10.15.0",
 		"eslint-config-prettier": "^10.1.8",
 		"globals": "^17.14.0",
 		"prettier": "^3.10.1",
 		"publint": "^0.3.25",
 		"rimraf": "^6.1.4",
 		"typescript": "^6.0.3",
-		"typescript-eslint": "^8.72.2",
+		"typescript-eslint": "^8.73.0",
 		"vitest": "^5.0.0"
 	},
 	"engines": {
